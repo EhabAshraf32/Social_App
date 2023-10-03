@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "602387776001",
+    "project_id": "fullsocialapp-81c80",
+    "storage_bucket": "fullsocialapp-81c80.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:602387776001:android:5beda2be784b28f5423600",
+        "android_client_info": {
+          "package_name": "com.example.socialapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAnqYmJ8cSsFHU7MXXCT6GZ3LRjw84DDM0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
