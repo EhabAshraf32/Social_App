@@ -831,120 +831,263 @@ Widget buildPostItem(
       ));
 }
 
-Align BuildMyMessage(MessageModel model, context) {
-  return Align(
-    alignment: AlignmentDirectional.centerEnd,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Container(
-            padding: EdgeInsets.symmetric(vertical: 5, horizontal: 5),
-            decoration: BoxDecoration(
-                color: primarycolor,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(10),
-                  topRight: Radius.circular(10),
-                  bottomLeft: Radius.circular(10),
-                )),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                model.image != null &&
-                        model.image != "" &&
-                        model.image!.isNotEmpty
-                    ? InkWell(
-                        onTap: () {
-                          Get.to(DisplayChatImage(
-                            image: model.image,
-                          ));
-                        },
-                        child: Hero(
-                          tag: "${model.image}",
-                          child: Container(
-                            height: MediaQuery.of(context).size.height / 2.5,
-                            width: MediaQuery.of(context).size.width / 1.5,
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(4),
-                                image: DecorationImage(
-                                    fit: BoxFit.fill,
-                                    image: NetworkImage("${model.image}"))),
+Widget BuildMyMessage(MessageModel model, context, {username}) {
+  return Padding(
+    padding: const EdgeInsets.all(5.0),
+    child: Align(
+      alignment: AlignmentDirectional.centerEnd,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Container(
+              constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 2 / 3),
+              padding: EdgeInsets.symmetric(vertical: 5, horizontal: 5),
+              decoration: BoxDecoration(
+                  color: primarycolor,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(10),
+                    topRight: Radius.circular(10),
+                    bottomLeft: Radius.circular(10),
+                  )),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (model.replayMessage != null)
+                    IntrinsicHeight(
+                      child: Row(
+                        children: [
+                          Container(
+                            color: chatcolorr,
+                            width: 4,
                           ),
-                        ),
-                      )
-                    : Container(
-                        width: 0,
+                          Expanded(
+                            child: Container(
+                              padding: EdgeInsets.all(5),
+                              decoration: BoxDecoration(
+                                  color: Colors.grey.withOpacity(0.2),
+                                  borderRadius: BorderRadius.only(
+                                      topRight: Radius.circular(12))),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    model.senderId !=
+                                            model.replayMessage?.senderId
+                                        ? "${username}"
+                                        : "You",
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 19,
+                                        color: Colors.white),
+                                  ),
+                                  if (model.replayMessage?.text != "")
+                                    Text(
+                                      "${model.replayMessage?.text}",
+                                      style: TextStyle(
+                                          color: Colors.white54, fontSize: 17),
+                                    ),
+                                  SizedBox(
+                                    height: 2,
+                                  ),
+                                  model.replayMessage?.image != ""
+                                      ? Container(
+                                          height: MediaQuery.of(context)
+                                                  .size
+                                                  .height /
+                                              3,
+                                          width: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              1.5,
+                                          decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                              image: DecorationImage(
+                                                  fit: BoxFit.fill,
+                                                  image: NetworkImage(
+                                                      "${model.replayMessage?.image}"))),
+                                        )
+                                      : Container(
+                                          width: 0,
+                                        )
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                Text(
-                  "${model.text}",
-                  style: TextStyle(fontSize: 18, color: Colors.white),
-                ),
-                Text(
-                  "${formattedDateTime(model.dateTime, 'hh:mm a').toString()}",
-                  style: TextStyle(fontSize: 13, color: Colors.white),
-                ),
-              ],
-            )),
-        Text(
-          model.isRead == true
-              ? 'Read'
-              : model.isSeen == true
-                  ? "Read"
-                  : "Unreed", // Display text "Read" or "Unread"
-          style: TextStyle(
-            fontSize: 14,
-            color: model.isRead ? Colors.grey.shade800 : Colors.deepOrange,
+                    ),
+                  model.image != null &&
+                          model.image != "" &&
+                          model.image!.isNotEmpty
+                      ? InkWell(
+                          onTap: () {
+                            Get.to(DisplayChatImage(
+                              image: model.image,
+                            ));
+                          },
+                          child: Hero(
+                            tag: "${model.image}",
+                            child: Container(
+                              height: MediaQuery.of(context).size.height / 2.5,
+                              width: MediaQuery.of(context).size.width / 1.5,
+                              decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(4),
+                                  image: DecorationImage(
+                                      fit: BoxFit.fill,
+                                      image: NetworkImage("${model.image}"))),
+                            ),
+                          ),
+                        )
+                      : Container(
+                          width: 0,
+                        ),
+                  Text(
+                    "${model.text}",
+                    style: TextStyle(fontSize: 18, color: Colors.white),
+                  ),
+                  Text(
+                    "${formattedDateTime(model.dateTime, 'hh:mm a').toString()}",
+                    style: TextStyle(fontSize: 13, color: Colors.white),
+                  ),
+                ],
+              )),
+          Text(
+            model.isRead == true
+                ? 'Read'
+                : model.isSeen == true
+                    ? "Read"
+                    : "Unreed", // Display text "Read" or "Unread"
+            style: TextStyle(
+              fontSize: 14,
+              color: model.isRead ? Colors.grey.shade800 : Colors.deepOrange,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     ),
   );
 }
 
-Align BuildHimMessage(MessageModel model, context) {
-  return Align(
-    alignment: AlignmentDirectional.centerStart,
-    child: Container(
-        padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-        decoration: BoxDecoration(
-            color: Colors.grey[300],
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(10),
-              topRight: Radius.circular(10),
-              bottomRight: Radius.circular(10),
-            )),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            model.image != null && model.image != "" && model.image!.isNotEmpty
-                ? InkWell(
-                    onTap: () {
-                      Get.to(DisplayChatImage(
-                        image: model.image,
-                      ));
-                    },
-                    child: Container(
-                      height: MediaQuery.of(context).size.height / 3,
-                      width: MediaQuery.of(context).size.width / 1.5,
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(4),
-                          image: DecorationImage(
-                              fit: BoxFit.fill,
-                              image: NetworkImage("${model.image}"))),
-                    ),
-                  )
-                : Container(
-                    width: 0,
+Widget BuildHimMessage(MessageModel model, context, {username}) {
+  return Padding(
+    padding: const EdgeInsets.all(5.0),
+    child: Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: Container(
+          constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 2 / 3),
+          padding: EdgeInsets.symmetric(vertical: 5, horizontal: 5),
+          decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(10),
+                topRight: Radius.circular(10),
+                bottomRight: Radius.circular(10),
+              )),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (model.replayMessage != null)
+                IntrinsicHeight(
+                  child: Row(
+                    children: [
+                      Container(
+                        color: chatcolorr,
+                        width: 4,
+                      ),
+                      Expanded(
+                        child: Container(
+                          padding: EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                              color: Colors.grey.withOpacity(0.2),
+                              borderRadius: BorderRadius.only(
+                                  topRight: Radius.circular(12))),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Text(
+                                model.senderId == model.replayMessage?.senderId
+                                    ? "${username}"
+                                    : "You",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 19,
+                                    color: Colors.black),
+                              ),
+                              if (model.replayMessage?.text != "")
+                                Text(
+                                  "${model.replayMessage?.text}",
+                                  style: TextStyle(
+                                      color: Colors.black54, fontSize: 17),
+                                ),
+                              SizedBox(
+                                height: 2,
+                              ),
+                              model.replayMessage?.image != ""
+                                  ? Container(
+                                      height:
+                                          MediaQuery.of(context).size.height /
+                                              3,
+                                      width: MediaQuery.of(context).size.width /
+                                          1.5,
+                                      decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                          image: DecorationImage(
+                                              fit: BoxFit.fill,
+                                              image: NetworkImage(
+                                                  "${model.replayMessage?.image}"))),
+                                    )
+                                  : Container(
+                                      width: 0,
+                                    )
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-            Text(
-              "${model.text}",
-              style: TextStyle(fontSize: 18),
-            ),
-            Text(
-              "${formattedDateTime(model.dateTime, 'hh:mm a').toString()}",
-              style: TextStyle(fontSize: 13),
-            ),
-          ],
-        )),
+                ),
+              model.image != null &&
+                      model.image != "" &&
+                      model.image!.isNotEmpty
+                  ? InkWell(
+                      onTap: () {
+                        Get.to(DisplayChatImage(
+                          image: model.image,
+                        ));
+                      },
+                      child: Hero(
+                        tag: "${model.image}",
+                        child: Container(
+                          height: MediaQuery.of(context).size.height / 2.5,
+                          width: MediaQuery.of(context).size.width / 1.5,
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(4),
+                              image: DecorationImage(
+                                  fit: BoxFit.fill,
+                                  image: NetworkImage("${model.image}"))),
+                        ),
+                      ),
+                    )
+                  : Container(
+                      width: 0,
+                    ),
+              Text(
+                "${model.text}",
+                style: TextStyle(fontSize: 18, color: Colors.black),
+              ),
+              Text(
+                "${formattedDateTime(model.dateTime, 'hh:mm a').toString()}",
+                style: TextStyle(fontSize: 13, color: Colors.black),
+              ),
+            ],
+          )),
+    ),
   );
 }
 

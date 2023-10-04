@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get.dart';
 import 'package:hexcolor/hexcolor.dart';
-import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
@@ -34,6 +33,19 @@ part 'social_state.dart';
 class SocialCubit extends Cubit<SocialState> {
   SocialCubit() : super(SocialInitial());
   static SocialCubit get(context) => BlocProvider.of(context);
+
+  MessageModel? replayMessage; // Updated to handle replayMessage
+
+  void changeReplayStatus({required MessageModel message}) {
+    replayMessage = message;
+    emit(SocialRessetReplayStatusSuccessState());
+  }
+
+  void cancelReplay() {
+    replayMessage = null;
+    emit(SocialCancelReplayStatusSuccessState());
+  }
+
   bool scrollToBottom = false;
   void ResetScrollController() {
     scrollToBottom = true;
@@ -331,19 +343,12 @@ class SocialCubit extends Cubit<SocialState> {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       profileimage = File(pickedFile.path);
-      profileimage = cropImage(image: profileimage!) as File?;
       uploadProfileImage(name: name, bio: bio);
       emit(SocialProfilePicedImageSuccesState());
     } else {
       print("No image selected");
       emit(SocialProfilePicedImageErrorState());
     }
-  }
-
-  Future<File?> cropImage({required File image}) async {
-    CroppedFile? croppedimage =
-        await ImageCropper().cropImage(sourcePath: image.path);
-    if (croppedimage == null) return null;
   }
 
   File? Postimage;
@@ -648,19 +653,26 @@ class SocialCubit extends Cubit<SocialState> {
   }
 
   void sendMessage(
-      {required receiverId, required dateTime, required text, String? image}) {
+      {required receiverId,
+      required dateTime,
+      required text,
+      String? image,
+      MessageModel? replaymessage}) {
     String messageId = FirebaseFirestore.instance.collection("chats").doc().id;
-
+// Debugging statement
+    print("sendMessage - replayMessage: ${replayMessage?.text}");
     MessageModel modell = MessageModel(
-        senderId: model!.uid,
-        receiverId: receiverId,
-        messageId: messageId,
-        dateTime: dateTime,
-        text: text,
-        receiverTkoenDevice: model!.tokenDevice,
-        image: image ?? "",
-        isRead: false,
-        isSeen: false);
+      senderId: model!.uid,
+      receiverId: receiverId,
+      messageId: messageId,
+      dateTime: dateTime,
+      text: text,
+      receiverTkoenDevice: model!.tokenDevice,
+      image: image ?? "",
+      replayMessage: replaymessage, // Pass the replayMessage here
+      isRead: false,
+      isSeen: false,
+    );
 //Send by me
     FirebaseFirestore.instance
         .collection("users")
@@ -671,6 +683,7 @@ class SocialCubit extends Cubit<SocialState> {
         .doc(messageId)
         .set(modell.toMap())
         .then((value) {
+      print("sssssssssssssssssss${modell.replayMessage?.text}");
       print("the token is ${model?.tokenDevice}");
 
       emit(SocialSendMessageSuccessState());

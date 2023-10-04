@@ -424,30 +424,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.2"
-  image_cropper:
-    dependency: "direct main"
-    description:
-      name: image_cropper
-      sha256: "542c3453109d16bcc388e43ae2276044d2cd6a6d20c68bdcff2c94ab9363ea15"
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.0.1"
-  image_cropper_for_web:
-    dependency: transitive
-    description:
-      name: image_cropper_for_web
-      sha256: "89c936aa772a35b69ca67b78049ae9fa163a4fb8da2f6dee3893db8883fb49d2"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.0.0"
-  image_cropper_platform_interface:
-    dependency: transitive
-    description:
-      name: image_cropper_platform_interface
-      sha256: b232175c132b2f7ede3e1f101652bcd635cb4079a77c6dded8e6d32e6578d685
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.0.0"
   image_picker:
     dependency: "direct main"
     description:
@@ -757,6 +733,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.0"
+  swipe_to:
+    dependency: "direct main"
+    description:
+      name: swipe_to
+      sha256: "6274e148a02b32dfa8ae8634c9aa6196bf5bc2d88653650abd11d2eb52fc5e29"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.2"
   term_glyph:
     dependency: transitive
     description:
