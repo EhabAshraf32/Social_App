@@ -831,7 +831,55 @@ Widget buildPostItem(
       ));
 }
 
-Widget BuildMyMessage(MessageModel model, context, {username}) {
+TextSpan highlightText(
+    {required String text, required String query, required TextStyle style}) {
+  final List<TextSpan> children = [];
+  int textIndex = 0;
+
+  for (int queryIndex = 0; queryIndex < query.length; queryIndex++) {
+    final queryChar = query[queryIndex].toLowerCase();
+
+    while (textIndex < text.length) {
+      final textChar = text[textIndex].toLowerCase();
+      if (textChar == queryChar) {
+        children.add(
+          TextSpan(
+            text: text[textIndex],
+            style: style.copyWith(
+              color: Colors.deepOrange, // Highlight color
+            ),
+          ),
+        );
+        textIndex++;
+        break; // Move to the next query character
+      } else {
+        children.add(
+          TextSpan(
+            text: text[textIndex],
+            style: style.copyWith(
+              color: Colors.white, // Default color
+            ),
+          ),
+        );
+        textIndex++;
+      }
+    }
+  }
+
+  while (textIndex < text.length) {
+    children.add(
+      TextSpan(text: text[textIndex], style: style),
+    );
+    textIndex++;
+  }
+
+  return TextSpan(
+    children: children,
+  );
+}
+
+Widget BuildMyMessage(MessageModel model, context,
+    {username, String query = ''}) {
   return Padding(
     padding: const EdgeInsets.all(5.0),
     child: Align(
@@ -944,9 +992,12 @@ Widget BuildMyMessage(MessageModel model, context, {username}) {
                       : Container(
                           width: 0,
                         ),
-                  Text(
-                    "${model.text}",
-                    style: TextStyle(fontSize: 18, color: Colors.white),
+                  RichText(
+                    text: highlightText(
+                      text: model.text,
+                      query: query,
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    ),
                   ),
                   Text(
                     "${formattedDateTime(model.dateTime, 'hh:mm a').toString()}",
@@ -962,7 +1013,8 @@ Widget BuildMyMessage(MessageModel model, context, {username}) {
                     : "Unreed", // Display text "Read" or "Unread"
             style: TextStyle(
               fontSize: 14,
-              color: model.isRead ? Colors.grey.shade800 : Colors.deepOrange,
+              fontWeight: FontWeight.w600,
+              color: model.isRead ? HexColor("#1b4740") : Colors.grey,
             ),
           ),
         ],
@@ -971,7 +1023,8 @@ Widget BuildMyMessage(MessageModel model, context, {username}) {
   );
 }
 
-Widget BuildHimMessage(MessageModel model, context, {username}) {
+Widget BuildHimMessage(MessageModel model, context,
+    {username, String query = ''}) {
   return Padding(
     padding: const EdgeInsets.all(5.0),
     child: Align(
@@ -1077,9 +1130,12 @@ Widget BuildHimMessage(MessageModel model, context, {username}) {
                   : Container(
                       width: 0,
                     ),
-              Text(
-                "${model.text}",
-                style: TextStyle(fontSize: 18, color: Colors.black),
+              RichText(
+                text: highlightText(
+                  text: model.text,
+                  query: query,
+                  style: TextStyle(fontSize: 18, color: Colors.black),
+                ),
               ),
               Text(
                 "${formattedDateTime(model.dateTime, 'hh:mm a').toString()}",

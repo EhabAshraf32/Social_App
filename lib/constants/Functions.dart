@@ -39,13 +39,3 @@ String formatDateTimeForPosts(DateTime dateTime) {
     return '${difference.inSeconds} seconds ago';
   }
 }
-
-void scrollToMessage(
-    MessageModel message, ScrollController scrollController, context) {
-  // Find the index of the selected message in your messagesmodel list
-  final index = SocialCubit.get(context).messagesmodel.indexOf(message);
-  if (index != -1) {
-    // Scroll to the selected message
-    scrollController.jumpTo(index * 50.0); // Adjust this value as needed
-  }
-}

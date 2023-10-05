@@ -537,11 +537,12 @@ class ChatDetailsScreen extends StatelessWidget {
                               ),
                               Expanded(
                                   child: TextFormField(
-                                autofocus:
-                                    SocialCubit.get(context).replayMessage ==
-                                            null
-                                        ? false
-                                        : true,
+                                autofocus: false
+                                // SocialCubit.get(context).replayMessage ==
+                                //         null
+                                //     ? false
+                                //     : true
+                                ,
                                 controller: controller,
                                 decoration: InputDecoration(
                                     border: InputBorder.none,

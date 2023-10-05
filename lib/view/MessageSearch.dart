@@ -13,6 +13,7 @@ import '../model/MessagesModel.dart';
 class MessageSearchDelegate extends SearchDelegate<String> {
   String? name;
   Function(MessageModel)? onTapMessage; // Callback to navigate to a message
+
   MessageSearchDelegate({
     required this.name,
     this.onTapMessage,
@@ -56,9 +57,11 @@ class MessageSearchDelegate extends SearchDelegate<String> {
         final messagemodel = results[index];
 
         if (messagemodel.senderId == SocialCubit.get(context).model?.uid) {
-          return BuildMyMessage(messagemodel, context, username: name);
+          return BuildMyMessage(messagemodel, context,
+              username: name, query: query);
         } else {
-          return BuildHimMessage(messagemodel, context, username: name);
+          return BuildHimMessage(messagemodel, context,
+              username: name, query: query);
         }
       },
       separatorBuilder: (context, index) => SizedBox(
@@ -80,9 +83,11 @@ class MessageSearchDelegate extends SearchDelegate<String> {
       itemBuilder: (context, index) {
         final messagemodel = suggestions[index];
         if (messagemodel.senderId == SocialCubit.get(context).model?.uid) {
-          return BuildMyMessage(messagemodel, context, username: name);
+          return BuildMyMessage(messagemodel, context,
+              username: name, query: query);
         } else {
-          return BuildHimMessage(messagemodel, context, username: name);
+          return BuildHimMessage(messagemodel, context,
+              username: name, query: query);
         }
       },
       separatorBuilder: (context, index) => SizedBox(
