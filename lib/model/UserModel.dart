@@ -14,20 +14,22 @@ class UserModel {
   bool isEmailVarified;
   String tokenDevice;
   String? lastMessage;
-  UserModel({
-    required this.name,
-    required this.email,
-    required this.phone,
-    required this.password,
-    required this.uid,
-    required this.isEmailVarified,
-    required this.image,
-    required this.cover,
-    required this.bio,
-    this.dateTime,
-    this.lastMessage,
-    required this.tokenDevice,
-  });
+  Map<String, dynamic> unreadMessages;
+  UserModel(
+      {required this.name,
+      required this.email,
+      required this.phone,
+      required this.password,
+      required this.uid,
+      required this.isEmailVarified,
+      required this.image,
+      required this.cover,
+      required this.bio,
+      this.dateTime,
+      this.lastMessage,
+      required this.tokenDevice,
+      Map<String, dynamic>? unreadMessages})
+      : unreadMessages = unreadMessages ?? {};
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
@@ -42,7 +44,8 @@ class UserModel {
       'dateTime': dateTime,
       'isEmailVerified': isEmailVarified,
       'lastMessage': lastMessage,
-      'tokenDevice': tokenDevice
+      'tokenDevice': tokenDevice,
+      'unreadMessages': unreadMessages
     };
   }
 
@@ -59,6 +62,7 @@ class UserModel {
         dateTime: map['dateTime'] as String,
         tokenDevice: map['tokenDevice'] as String,
         lastMessage: map['lastMessage'] as String,
+        unreadMessages: map['unreadMessages'] as Map<String, dynamic>,
         isEmailVarified: map['isEmailVerified']);
   }
 

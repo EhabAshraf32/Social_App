@@ -660,7 +660,6 @@ class SocialCubit extends Cubit<SocialState> {
       MessageModel? replaymessage}) {
     String messageId = FirebaseFirestore.instance.collection("chats").doc().id;
 // Debugging statement
-    print("sendMessage - replayMessage: ${replayMessage?.text}");
     MessageModel modell = MessageModel(
       senderId: model!.uid,
       receiverId: receiverId,
@@ -683,9 +682,10 @@ class SocialCubit extends Cubit<SocialState> {
         .doc(messageId)
         .set(modell.toMap())
         .then((value) {
-      print("sssssssssssssssssss${modell.replayMessage?.text}");
-      print("the token is ${model?.tokenDevice}");
-
+      FirebaseFirestore.instance
+          .collection("users")
+          .doc(model?.uid)
+          .update({'unreadMessages.${receiverId}': FieldValue.increment(1)});
       emit(SocialSendMessageSuccessState());
     }).catchError((error) {
       print("Error sending message: $error");
@@ -809,14 +809,16 @@ class SocialCubit extends Cubit<SocialState> {
           if (!message.isRead) {
             // Update the message's read status in Firestore
             element.reference.update({'isRead': true});
+            // FirebaseFirestore.instance
+            //     .collection("users")
+            //     .doc(receiverId)
+            //     .update({'unreadMessages.${model?.uid}': 0});
           }
         }
 
-        print("Received message: $message");
         messagesmodel.add(message);
       });
 
-      print("messagesmodel is $messagesmodel");
       emit(SocialGetMessageSuccessState());
     });
   }

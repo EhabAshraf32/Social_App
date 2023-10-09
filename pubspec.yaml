@@ -46,6 +46,7 @@ dependencies:
   shimmer: ^3.0.0
   swipe_to: ^1.0.2
   cupertino_icons: ^1.0.2
+  like_button: ^2.0.5
   firebase_auth: ^4.9.0
   firebase_core: ^2.15.1
   cloud_firestore: ^4.9.1

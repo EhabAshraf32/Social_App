@@ -20,48 +20,12 @@ import 'controller/socialCubit/cubit/social_cubit.dart';
 import 'helper/local/sharedPref.dart';
 import 'layout/BottomNaviBar.dart';
 
-// Future<void> firebaseMessagingBackgroundHandler(RemoteMessage? message) async {
-//   print("On BackgroungMessage");
-//   print(message?.data.toString());
-//   Fluttertoast.showToast(
-//     msg: "This is Center Short Toast",
-//     toastLength: Toast.LENGTH_SHORT,
-//     gravity: ToastGravity.CENTER,
-//     timeInSecForIosWeb: 1,
-//     backgroundColor: Colors.red,
-//     textColor: Colors.white,
-//     fontSize: 16.0,
-//   );
-// }
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  // await FirebaseApi().initNotification();
   SocialCubit().initNotification();
-
-  // final token = await FirebaseMessaging.instance.getToken();
-  // print("Token is ${token} ");
-  // FirebaseMessaging.onMessage.listen((event) {
-  //   print("On Message");
-  //   print(event.data.toString());
-  //   snackbar(
-  //     type: "Notification",
-  //     message: "One Message",
-  //     color: HexColor("#021518"),
-  //   );
-  // });
-  // FirebaseMessaging.onMessageOpenedApp.listen((event) {
-  //   print("On Message Opened App");
-  //   print(event.data.toString());
-  //   snackbar(
-  //     type: "Notification",
-  //     message: "On Message Opened App",
-  //     color: HexColor("#021518"),
-  //   );
-  // });
-  // FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   await SharedPref.init();
   bool OnBoard = SharedPref.getData(key: "OnBoarding");
   uid = SharedPref.getData(key: "uId");
@@ -97,11 +61,9 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (context) => SocialCubit()
-            ..getPosts()
-            ..getUserData()
-            ..getAllUsers(),
-        ),
+            create: (context) => SocialCubit()
+              ..getPosts()
+              ..getUserData()),
         BlocProvider(
           create: (context) => LoginCubit(),
         ),

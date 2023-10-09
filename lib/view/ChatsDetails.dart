@@ -2,6 +2,7 @@
 
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get.dart';
@@ -29,6 +30,8 @@ class ChatDetailsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Builder(
       builder: (context) {
+        FirebaseFirestore.instance.collection("users").doc(model.uid).update(
+            {'unreadMessages.${SocialCubit.get(context).model?.uid}': 0});
         SocialCubit.get(context).getMessages(receiverId: model.uid);
         return BlocConsumer<SocialCubit, SocialState>(
           listener: (context, state) {
@@ -39,10 +42,6 @@ class ChatDetailsScreen extends StatelessWidget {
                     image: SocialCubit.get(context).Chatimage,
                     model: model,
                     onSendPressed: () {
-                      // Handle sending the message with the image
-                      // You can access the message text from the TextFormField
-                      // and the image from SocialCubit.get(context).Chatimage
-                      // Send the message and navigate back.
                       Navigator.pop(context);
                     },
                   ),
@@ -291,8 +290,10 @@ class ChatDetailsScreen extends StatelessWidget {
                                                 "Replay message set: ${message.text}");
                                           },
                                           child: BuildMyMessage(
-                                              message, context,
-                                              username: model.name)));
+                                            message,
+                                            context,
+                                            username: model.name,
+                                          )));
                                 } else {
                                   return GestureDetector(
                                       onLongPress: () {

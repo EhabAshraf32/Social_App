@@ -158,6 +158,10 @@ class SocialRessetReplayStatusSuccessState extends SocialState {}
 
 class SocialCancelReplayStatusSuccessState extends SocialState {}
 
+class UpdateMessageSuccess extends SocialState {}
+
+class UpdateMessageError extends SocialState {}
+
 //Likes
 class SocialRemoveLikeSuccessState extends SocialState {}
 
