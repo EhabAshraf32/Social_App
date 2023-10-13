@@ -82,6 +82,7 @@ flutter:
     - assets/gog.png
     - assets/img_register.png
     - assets/waiting.png
+    - assets/nolikes.jpg
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

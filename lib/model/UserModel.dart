@@ -15,21 +15,24 @@ class UserModel {
   String tokenDevice;
   String? lastMessage;
   Map<String, dynamic> unreadMessages;
-  UserModel(
-      {required this.name,
-      required this.email,
-      required this.phone,
-      required this.password,
-      required this.uid,
-      required this.isEmailVarified,
-      required this.image,
-      required this.cover,
-      required this.bio,
-      this.dateTime,
-      this.lastMessage,
-      required this.tokenDevice,
-      Map<String, dynamic>? unreadMessages})
-      : unreadMessages = unreadMessages ?? {};
+  Map<String, dynamic> unreadNotification;
+  UserModel({
+    required this.name,
+    required this.email,
+    required this.phone,
+    required this.password,
+    required this.uid,
+    required this.isEmailVarified,
+    required this.image,
+    required this.cover,
+    required this.bio,
+    this.dateTime,
+    this.lastMessage,
+    required this.tokenDevice,
+    Map<String, dynamic>? unreadMessages,
+    Map<String, dynamic>? unreadNotification,
+  })  : unreadMessages = unreadMessages ?? {},
+        unreadNotification = unreadNotification ?? {};
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
@@ -45,7 +48,8 @@ class UserModel {
       'isEmailVerified': isEmailVarified,
       'lastMessage': lastMessage,
       'tokenDevice': tokenDevice,
-      'unreadMessages': unreadMessages
+      'unreadMessages': unreadMessages,
+      'unreadNotification': unreadNotification
     };
   }
 
@@ -63,6 +67,7 @@ class UserModel {
         tokenDevice: map['tokenDevice'] as String,
         lastMessage: map['lastMessage'] as String,
         unreadMessages: map['unreadMessages'] as Map<String, dynamic>,
+        unreadNotification: map['unreadNotification'] as Map<String, dynamic>,
         isEmailVarified: map['isEmailVerified']);
   }
 

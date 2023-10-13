@@ -202,3 +202,5 @@ class SocialPostNotificationSuccessState extends SocialState {}
 class SocialPostNotificationErrorState extends SocialState {}
 
 class SocialResetScrollController extends SocialState {}
+
+class SocialNotificationLoadingState extends SocialState {}

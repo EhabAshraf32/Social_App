@@ -7,6 +7,8 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:hexcolor/hexcolor.dart';
 import 'package:like_button/like_button.dart';
+import 'package:socialapp/model/LikesAndCommentsNotifications.dart';
+import 'package:socialapp/model/LikesModel.dart';
 import 'package:socialapp/styles/AuthStyles.dart';
 import 'package:socialapp/styles/icon_broken.dart';
 import 'package:socialapp/view/AllUsersProfileScreen.dart';
@@ -278,45 +280,284 @@ Widget userComments(CommentsModel Commentsmodel, context, index) {
   );
 }
 
+Widget userLikesAndCommentsItem(
+    LikesAndCommentsNotifications Commentsmodel, context, index) {
+  DateTime commentasDateTime = DateTime.parse(Commentsmodel.dateTime);
+  final bool isCurrentUserComment =
+      Commentsmodel.uid != SocialCubit.get(context).model?.uid;
+
+  int commentIndex = index; // Create a local variable to capture the index
+  if (isCurrentUserComment) {
+    return Padding(
+      padding: const EdgeInsets.all(10.0),
+      child: Row(children: [
+        Stack(
+          alignment: Alignment.bottomRight,
+          children: [
+            CircleAvatar(
+              radius: 35,
+              backgroundImage: NetworkImage("${Commentsmodel.image}"),
+            ),
+            CircleAvatar(
+              radius: 15,
+              backgroundColor: Colors.red,
+              child: Icon(
+                Icons.favorite_outlined,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(
+          width: 10,
+        ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    "${Commentsmodel.name}",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    " liked to your post: ",
+                    style: TextStyle(
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Text(
+                    "''",
+                    style: TextStyle(
+                      fontSize: 16,
+                    ),
+                  ),
+                  CircleAvatar(
+                    radius: 10,
+                    backgroundColor: Colors.red,
+                    child: Icon(
+                      Icons.favorite_outlined,
+                      color: Colors.white,
+                      size: 12,
+                    ),
+                  ),
+                  Text(
+                    "''",
+                    style: TextStyle(
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        Text(formatDateTimeForPosts(commentasDateTime),
+            style: Theme.of(context).textTheme.bodySmall)
+      ]),
+    );
+  } else {
+    return Container();
+  }
+}
+
 Widget userNumberComments(CommentsModel Commentsmodel, context, index) {
   DateTime commentasDateTime = DateTime.parse(Commentsmodel.dateTime);
   final bool isCurrentUserComment =
       Commentsmodel.uid == SocialCubit.get(context).model?.uid;
   int commentIndex = index; // Create a local variable to capture the index
 
-  return Row(
-    children: [
-      Stack(
-        alignment: Alignment.bottomRight,
+  return InkWell(
+    onLongPress: () {
+      if (isCurrentUserComment)
+        showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                actionsPadding: EdgeInsets.only(bottom: 10),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text("cancel", style: TextStyle(color: Colors.red)),
+                  ),
+                  TextButton(
+                      onPressed: () {
+                        SocialCubit.get(context).deleteComment(
+                          postId: SocialCubit.get(context).postId[commentIndex],
+                          CommentsId: Commentsmodel.CommentsId,
+                        );
+                        Get.back();
+                      },
+                      child:
+                          Text("Ok", style: TextStyle(color: homeprimarycolor)))
+                ],
+                title: Text(
+                  "Warning",
+                  style: TextStyle(
+                      color: primarycolor, fontWeight: FontWeight.bold),
+                ),
+                content: Text(
+                    "are you sure that you want to delete your comment",
+                    style: TextStyle(color: primarycolor)),
+                backgroundColor: Colors.white,
+              );
+            });
+    },
+    child: InkWell(
+      onTap: () {
+        Get.to(AllUsersProfileScreen(
+            model: CreatePostModel(
+                uid: Commentsmodel.uid,
+                name: Commentsmodel.name,
+                email: Commentsmodel.email,
+                phone: Commentsmodel.phone,
+                password: Commentsmodel.password,
+                cover: Commentsmodel.cover,
+                bio: Commentsmodel.bio,
+                image: Commentsmodel.image)));
+      },
+      child: Row(
         children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundImage: NetworkImage("${Commentsmodel.image}"),
+          Stack(
+            alignment: Alignment.bottomRight,
+            children: [
+              CircleAvatar(
+                radius: 30,
+                backgroundImage: NetworkImage("${Commentsmodel.image}"),
+              ),
+              CircleAvatar(
+                  backgroundColor: Colors.white,
+                  radius: 10,
+                  child: Icon(
+                    IconBroken.Chat,
+                    color: Colors.amber,
+                    size: 20,
+                  )),
+            ],
           ),
-          CircleAvatar(
-              backgroundColor: Colors.white,
-              radius: 10,
-              child: Icon(
-                IconBroken.Chat,
-                color: Colors.amber,
-                size: 20,
-              )),
+          SizedBox(
+            width: 15,
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      "${Commentsmodel.name}",
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(
+                      width: 5,
+                    ),
+                    Icon(
+                      Icons.check_circle,
+                      color: homeprimarycolor,
+                      size: 16,
+                    )
+                  ],
+                ),
+                Text(
+                  "${Commentsmodel.text}",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                )
+              ],
+            ),
+          ),
+          SizedBox(
+            width: 15,
+          ),
+          Text(formatDateTimeForPosts(commentasDateTime),
+              style: Theme.of(context).textTheme.bodySmall)
         ],
       ),
-      SizedBox(
-        width: 15,
-      ),
-      Expanded(
-        child: Row(
+    ),
+  );
+}
+
+Widget userNumberLikes(LikesModel likesModel, context, index) {
+  DateTime LikesDateTime = DateTime.parse(likesModel.dateTime);
+  final bool isCurrentUserComment =
+      likesModel.uid == SocialCubit.get(context).model?.uid;
+
+  return InkWell(
+    onTap: () {
+      Get.to(AllUsersProfileScreen(
+          model: CreatePostModel(
+              uid: likesModel.uid,
+              name: likesModel.name,
+              email: likesModel.email,
+              phone: likesModel.phone,
+              password: likesModel.password,
+              cover: likesModel.cover,
+              bio: likesModel.bio,
+              image: likesModel.image)));
+    },
+    child: Row(
+      children: [
+        Stack(
+          alignment: Alignment.bottomRight,
           children: [
-            Text(
-              "${Commentsmodel.name}",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            CircleAvatar(
+              radius: 30,
+              backgroundImage: NetworkImage("${likesModel.image}"),
             ),
+            CircleAvatar(
+                backgroundColor: Colors.transparent,
+                radius: 10,
+                child: Icon(
+                  Icons.favorite,
+                  color: Colors.red,
+                  size: 23,
+                )),
           ],
         ),
-      ),
-    ],
+        SizedBox(
+          width: 15,
+        ),
+        Expanded(
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Text(
+                    "${likesModel.name}",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(
+                    width: 5,
+                  ),
+                  Icon(
+                    Icons.check_circle,
+                    color: homeprimarycolor,
+                    size: 16,
+                  ),
+                ],
+              ),
+              SizedBox(
+                height: 2,
+              ),
+              Row(
+                children: [
+                  Text(formatDateTimeForPosts(LikesDateTime),
+                      style: Theme.of(context).textTheme.bodySmall),
+                ],
+              )
+            ],
+          ),
+        ),
+      ],
+    ),
   );
 }
 
@@ -330,16 +571,16 @@ Widget buildPostItem(
   Future<bool> onLikeButtonTapped(bool isLiked) async {
     if (postmodell.isLiked == true) {
       // User has already liked the post, so remove the like
-      SocialCubit.get(context).removeLike(
+      SocialCubit.get(context).removeLikesss(
         postId: SocialCubit.get(context).postId[index],
         postModel: postmodell,
       );
     } else {
       // User hasn't liked the post, so add a like
-      SocialCubit.get(context).addLikes(
-        postId: SocialCubit.get(context).postId[index],
-        postModel: postmodell,
-      );
+      SocialCubit.get(context).addLikesss(
+          postId: SocialCubit.get(context).postId[index],
+          postModel: postmodell,
+          timestamp: DateTime.now().toString());
     }
     return !isLiked;
   }
@@ -349,10 +590,10 @@ Widget buildPostItem(
 
   return Card(
       elevation: 5,
-      margin: EdgeInsets.symmetric(horizontal: 8),
+      margin: EdgeInsets.symmetric(horizontal: 4),
       clipBehavior: Clip.antiAliasWithSaveLayer,
       child: Padding(
-        padding: const EdgeInsets.all(10.0),
+        padding: const EdgeInsets.all(5.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -506,12 +747,12 @@ Widget buildPostItem(
                     child: Hero(
                       tag: "${postmodell.postImage}",
                       child: Container(
-                        height: heigh / 2,
+                        height: heigh / 1.8,
                         width: double.infinity,
                         decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(4),
                             image: DecorationImage(
-                                fit: BoxFit.contain,
+                                fit: BoxFit.cover,
                                 image:
                                     NetworkImage("${postmodell.postImage}"))),
                       ),
@@ -544,7 +785,76 @@ Widget buildPostItem(
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 5),
                     child: GestureDetector(
-                      onTap: () {},
+                      onTap: () {
+                        showModalBottomSheet(
+                            context: context,
+                            builder: (context) {
+                              return Container(
+                                  padding: EdgeInsets.all(10),
+                                  color: Colors.white,
+                                  height: double.infinity,
+                                  child: Column(
+                                    children: [
+                                      StreamBuilder(
+                                          stream: SocialCubit.get(context)
+                                              .getLikes(SocialCubit.get(context)
+                                                  .postId[index]),
+                                          builder: (context, snapshot) {
+                                            if (snapshot.hasError) {
+                                              return Text(
+                                                  "Error: ${snapshot.error}");
+                                            } else if (!snapshot.hasData ||
+                                                snapshot.data?.length == 0)
+                                              return Column(
+                                                children: [
+                                                  Text(
+                                                    "Be the first person to like this post",
+                                                    style: TextStyle(
+                                                        color: primarycolor,
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  )
+                                                ],
+                                              );
+                                            else {
+                                              SocialCubit.get(context)
+                                                  .Likesmodel = snapshot.data;
+                                              int originalLikesIndex = index;
+                                              return Expanded(
+                                                child: ListView.separated(
+                                                    physics:
+                                                        BouncingScrollPhysics(),
+                                                    itemBuilder:
+                                                        (context, index) {
+                                                      return userNumberLikes(
+                                                        SocialCubit.get(context)
+                                                            .Likesmodel![index],
+                                                        context,
+                                                        originalLikesIndex,
+                                                      );
+                                                    },
+                                                    separatorBuilder: (context,
+                                                            index) =>
+                                                        Container(
+                                                          margin: EdgeInsets
+                                                              .symmetric(
+                                                                  vertical: 7),
+                                                          height: 1,
+                                                          color: Colors
+                                                              .grey.shade300,
+                                                        ),
+                                                    itemCount:
+                                                        SocialCubit.get(context)
+                                                                .Likesmodel
+                                                                ?.length ??
+                                                            0),
+                                              );
+                                            }
+                                          }),
+                                    ],
+                                  ));
+                            });
+                      },
                       child: Container(
                         child: Row(
                           children: [
@@ -589,7 +899,10 @@ Widget buildPostItem(
                                                   "Error: ${snapshot.error}");
                                             } else if (!snapshot.hasData ||
                                                 snapshot.data!.isEmpty) {
-                                              return Text("No comments yet.");
+                                              return Center(
+                                                child:
+                                                    CircularProgressIndicator(),
+                                              );
                                             } else {
                                               SocialCubit.get(context)
                                                   .commentss = snapshot.data;
@@ -695,7 +1008,8 @@ Widget buildPostItem(
                                               "Error: ${snapshot.error}");
                                         } else if (!snapshot.hasData ||
                                             snapshot.data!.isEmpty) {
-                                          return Text("No comments yet.");
+                                          return Text(
+                                              "Be the first person to comment on this post");
                                         } else {
                                           SocialCubit.get(context).commentss =
                                               snapshot.data;
@@ -964,6 +1278,8 @@ Widget BuildMyMessage(MessageModel model, context,
                                   ),
                                   if (model.replayMessage?.text != "")
                                     Text(
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
                                       "${model.replayMessage?.text}",
                                       style: TextStyle(
                                           color: Colors.white54, fontSize: 17),

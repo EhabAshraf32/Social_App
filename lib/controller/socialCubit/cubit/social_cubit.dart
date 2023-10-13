@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print, prefer_const_constructors, non_constant_identifier_names, unused_local_variable, unnecessary_null_comparison, prefer_if_null_operators, avoid_function_literals_in_foreach_calls, unnecessary_string_interpolations
+// ignore_for_file: avoid_print, prefer_const_constructors, non_constant_identifier_names, unused_local_variable, unnecessary_null_comparison, prefer_if_null_operators, avoid_function_literals_in_foreach_calls, unnecessary_string_interpolations, curly_braces_in_flow_control_structures
 
 import 'dart:io';
 
@@ -11,6 +11,7 @@ import 'package:hexcolor/hexcolor.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
+import 'package:socialapp/model/LikesModel.dart';
 
 import '../../../Widgets.dart';
 import '../../../constants/variables.dart';
@@ -20,6 +21,7 @@ import '../../../layout/BottomNaviBar.dart';
 import '../../../main.dart';
 import '../../../model/CommentsModel.dart';
 import '../../../model/CreatePost.dart';
+import '../../../model/LikesAndCommentsNotifications.dart';
 import '../../../model/MessagesModel.dart';
 import '../../../model/UserModel.dart';
 import '../../../view/BottomNaviScreens/ChatsScreen.dart';
@@ -216,7 +218,127 @@ class SocialCubit extends Cubit<SocialState> {
     });
   }
 
+  void removeLikesss({
+    required String postId,
+    required CreatePostModel postModel,
+  }) {
+    FirebaseFirestore.instance
+        .collection("posts")
+        .doc(postId)
+        .collection("likes")
+        .doc(model?.uid)
+        .delete()
+        .then((value) {
+      // Update the local post model to reflect that the user has unliked it
+      postModel.isLiked = false;
+      emit(SocialRemoveLikeSuccessState());
+    }).catchError((error) {
+      print(error.toString());
+      emit(SocialRemoveLikeErrorState(error: error.toString()));
+    });
+  }
+
+  List<LikesAndCommentsNotifications>? likesAndCommentsNotifications = [];
+  Stream<List<LikesAndCommentsNotifications>>
+      getlikesAndCommentsNotifications() {
+    return FirebaseFirestore.instance
+        .collection("notifications")
+        .orderBy("dateTime", descending: true)
+        .snapshots()
+        .map((querySnapshot) {
+      likesAndCommentsNotifications = [];
+      querySnapshot.docs.forEach((document) {
+        likesAndCommentsNotifications
+            ?.add(LikesAndCommentsNotifications.fromMap(document.data()));
+      });
+      return likesAndCommentsNotifications
+          as List<LikesAndCommentsNotifications>;
+    });
+  }
+
   //String commentsId = ""; // Store the generated ID
+  void addLikesss({
+    required String postId,
+    required String timestamp,
+    required CreatePostModel postModel,
+  }) {
+    String LikesAndcommentsNotificationsId =
+        FirebaseFirestore.instance.collection("notifications").doc().id;
+
+    LikesModel Likesmodel = LikesModel(
+      postId: postId,
+      uid: model!.uid,
+      name: model!.name,
+      like: true,
+      image: model!.image,
+      cover: model!.cover,
+      bio: model!.bio,
+      email: model!.email,
+      password: model!.password,
+      phone: model!.phone,
+      dateTime: timestamp,
+    );
+    LikesAndCommentsNotifications likesAndCommentsNotifications =
+        LikesAndCommentsNotifications(
+      postId: postId,
+      uid: model!.uid,
+      recevUserId: postModel.uid,
+      name: model!.name,
+      like: true,
+      image: model!.image,
+      cover: model!.cover,
+      bio: model!.bio,
+      email: model!.email,
+      password: model!.password,
+      phone: model!.phone,
+      dateTime: timestamp,
+    );
+    FirebaseFirestore.instance
+        .collection("posts")
+        .doc(postId)
+        .collection("likes")
+        .doc(model?.uid)
+        .set(Likesmodel.toMap())
+        .then((value) {
+      postModel.isLiked = true;
+      FirebaseFirestore.instance
+          .collection("notifications")
+          .doc(LikesAndcommentsNotificationsId)
+          .set(likesAndCommentsNotifications.toMap());
+      if (likesAndCommentsNotifications.recevUserId != model?.uid) {
+        FirebaseFirestore.instance
+            .collection("users")
+            .doc(likesAndCommentsNotifications.recevUserId)
+            .update({
+          'unreadNotification.${likesAndCommentsNotifications.recevUserId}':
+              FieldValue.increment(1)
+        });
+      }
+      emit(SocialLikePostSuccesState());
+    }).catchError((error) {
+      print(error.toString());
+
+      emit(SocialLikePostErrorState(error: error.toString()));
+    });
+  }
+
+  List<LikesModel>? Likesmodel = [];
+  Stream<List<LikesModel>> getLikes(String postId) {
+    print("Fetching Likes for postId: $postId"); // Debug log
+    return FirebaseFirestore.instance
+        .collection("posts")
+        .doc(postId)
+        .collection("likes")
+        .orderBy("dateTime", descending: true)
+        .snapshots()
+        .map((querySnapshot) {
+      Likesmodel = [];
+      querySnapshot.docs.forEach((document) {
+        Likesmodel?.add(LikesModel.fromMap(document.data()));
+      });
+      return Likesmodel as List<LikesModel>;
+    });
+  }
 
   void addComments(
       {required String postId,
@@ -225,14 +347,18 @@ class SocialCubit extends Cubit<SocialState> {
     String commentsId = FirebaseFirestore.instance.collection("posts").doc().id;
 
     CommentsModel comment = CommentsModel(
-      postId: postId,
-      uid: model!.uid,
-      CommentsId: commentsId,
-      image: model!.image,
-      name: model!.name,
-      text: commentText,
-      dateTime: timestamp,
-    );
+        postId: postId,
+        uid: model!.uid,
+        CommentsId: commentsId,
+        image: model!.image,
+        name: model!.name,
+        text: commentText,
+        dateTime: timestamp,
+        bio: model!.bio,
+        cover: model!.cover,
+        email: model!.email,
+        password: model!.password,
+        phone: model!.phone);
     FirebaseFirestore.instance
         .collection("posts")
         .doc(postId)
@@ -319,10 +445,10 @@ class SocialCubit extends Cubit<SocialState> {
     FeedsScreen(),
     ChatsScreen(),
     NewPostScreen(),
-    UsersScreen(),
+    NotificationsScreen(),
     SettingsScreen()
   ];
-  List<String> titles = ["Home", "Chats", "Posts", "Users", "Settings"];
+  List<String> titles = ["Home", "Chats", "Posts", "Notification", "Settings"];
 
   void ChangeIndex(index) {
     if (index == 1) {
@@ -330,6 +456,14 @@ class SocialCubit extends Cubit<SocialState> {
     }
     if (index == 2) {
       emit(SocialNewPostState());
+    }
+    if (index == 3) {
+      FirebaseFirestore.instance
+          .collection("users")
+          .doc(model?.uid)
+          .update({'unreadNotification.${model?.uid}': 0});
+      selectedindex = index;
+      emit(SocialChangeButtomNavState());
     } else {
       selectedindex = index;
       emit(SocialChangeButtomNavState());
