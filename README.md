@@ -26,5 +26,4 @@ Firebase Cloud Messaging: Receive instant notifications for new posts, comments,
 * User-Friendly Options: View and edit user profile details.
 * Password Change: Change your password conveniently.
 * Log Out: Securely log out from the application
-![Image Alt Text](file:///C:/Users/ehabe/Desktop/Screenshot%202023-11-13%20202314.png)
-
+![App Screenshot](https://example.com/screenshot.png)
