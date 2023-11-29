@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_constructors
+// ignore_for_file: prefer_const_constructors, prefer_is_empty
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -32,7 +32,33 @@ class ChatsScreen extends StatelessWidget {
                 return Center(
                   child: Text('Error: ${snapshot.error}'),
                 );
-              } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              } else if (snapshot.hasData || snapshot.data?.docs.length != 0) {
+                final users = snapshot.data?.docs
+                    .map((document) => UserModel.fromMap(
+                        document.data() as Map<String, dynamic>))
+                    .where((user) =>
+                        user.uid != SocialCubit.get(context).model?.uid)
+                    .toList();
+                return ListView.separated(
+                  physics: BouncingScrollPhysics(),
+                  itemBuilder: (context, index) {
+                    final userModel = users![index];
+                    if (userModel.lastMessage != "No Message Yet") {
+                      return chatsListView(userModel, context);
+                    } else {
+                      return Container(
+                        height: 0,
+                      );
+                    }
+                    // Add a null check here
+                  },
+                  separatorBuilder: (context, index) => Container(
+                    height: 1,
+                    color: Colors.grey[300],
+                  ),
+                  itemCount: users?.length ?? 0,
+                );
+              } else {
                 return Center(
                   child: Text(
                     'Search to chat with friends',
@@ -41,27 +67,6 @@ class ChatsScreen extends StatelessWidget {
                         fontSize: 17,
                         fontWeight: FontWeight.bold),
                   ),
-                );
-              } else {
-                final users = snapshot.data!.docs
-                    .map((document) => UserModel.fromMap(
-                        document.data() as Map<String, dynamic>))
-                    .where((user) =>
-                        user.uid != SocialCubit.get(context).model?.uid)
-                    .toList();
-
-                return ListView.separated(
-                  physics: BouncingScrollPhysics(),
-                  itemBuilder: (context, index) {
-                    final userModel = users[index];
-                    return chatsListView(userModel, context);
-                    // Add a null check here
-                  },
-                  separatorBuilder: (context, index) => Container(
-                    height: 1,
-                    color: Colors.grey[300],
-                  ),
-                  itemCount: users.length,
                 );
               }
             },

@@ -1,6 +1,7 @@
+// ignore_for_file: prefer_null_aware_operators
+
 import 'dart:convert';
 
-// ignore_for_file: public_member_api_docs, sort_constructors_first
 class MessageModel {
   String senderId;
   String receiverId;
@@ -9,18 +10,22 @@ class MessageModel {
   String text;
   String? image;
   String receiverTkoenDevice;
-  bool isRead; // Add this field for tracking read/unread status
+  bool isRead;
   bool isSeen;
-  MessageModel(
-      {required this.senderId,
-      required this.receiverId,
-      required this.messageId,
-      required this.dateTime,
-      required this.text,
-      required this.receiverTkoenDevice,
-      this.image,
-      required this.isRead,
-      required this.isSeen});
+  MessageModel? replayMessage;
+
+  MessageModel({
+    required this.senderId,
+    required this.receiverId,
+    required this.messageId,
+    required this.dateTime,
+    required this.text,
+    required this.receiverTkoenDevice,
+    this.image,
+    this.replayMessage,
+    required this.isRead,
+    required this.isSeen,
+  });
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
@@ -31,6 +36,7 @@ class MessageModel {
       'text': text,
       'receiverTkoenDevice': receiverTkoenDevice,
       'image': image,
+      'replayMessage': replayMessage != null ? replayMessage?.toMap() : null,
       'isRead': isRead,
       'isSeen': isSeen,
     };
@@ -44,7 +50,10 @@ class MessageModel {
       dateTime: map['dateTime'] as String,
       text: map['text'] as String,
       receiverTkoenDevice: map['receiverTkoenDevice'] as String,
-      image: map['image'] as String,
+      image: map['image'] as String?,
+      replayMessage: map['replayMessage'] != null
+          ? MessageModel.fromMap(map['replayMessage'])
+          : null,
       isRead: map['isRead'] as bool,
       isSeen: map['isSeen'] as bool,
     );

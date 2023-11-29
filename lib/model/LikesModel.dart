@@ -3,48 +3,45 @@
 import 'dart:convert';
 
 // ignore_for_file: public_member_api_docs, sort_constructors_first
-class CommentsModel {
+class LikesModel {
   // final String commentId;
   final String postId;
-  final String uid; //for userid
-  final String CommentsId;
-  final String image;
-  final String name;
-  final String text;
   final String cover;
   final String bio;
+  final String image;
   final String email;
   final String phone;
   final String password;
-  final String dateTime;
+  final String uid; //for userid
+  final String name;
   final String tokenDevice;
-  CommentsModel({
+  final String dateTime;
+  final bool like;
+  LikesModel({
     required this.postId,
     required this.uid,
-    required this.CommentsId,
-    required this.image,
     required this.name,
-    required this.text,
     required this.dateTime,
+    required this.like,
     required this.cover,
     required this.bio,
+    required this.image,
     required this.email,
     required this.phone,
-    required this.tokenDevice,
     required this.password,
+    required this.tokenDevice,
   });
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'postId': postId,
       'uid': uid,
-      'CommentsId': CommentsId,
-      'image': image,
       'name': name,
-      'text': text,
-      'cover': cover,
       'dateTime': dateTime,
+      'like': like,
+      'cover': cover,
       'bio': bio,
+      'image': image,
       'email': email,
       'phone': phone,
       'password': password,
@@ -52,17 +49,16 @@ class CommentsModel {
     };
   }
 
-  factory CommentsModel.fromMap(Map<String, dynamic> map) {
-    return CommentsModel(
+  factory LikesModel.fromMap(Map<String, dynamic> map) {
+    return LikesModel(
       postId: map['postId'] as String,
       uid: map['uid'] as String,
-      CommentsId: map['CommentsId'] as String,
-      image: map['image'] as String,
       name: map['name'] as String,
-      text: map['text'] as String,
       dateTime: map['dateTime'] as String,
+      like: map['like'] as bool,
       cover: map['cover'] as String,
       bio: map['bio'] as String,
+      image: map['image'] as String,
       email: map['email'] as String,
       phone: map['phone'] as String,
       password: map['password'] as String,
@@ -72,6 +68,6 @@ class CommentsModel {
 
   String toJson() => json.encode(toMap());
 
-  factory CommentsModel.fromJson(String source) =>
-      CommentsModel.fromMap(json.decode(source) as Map<String, dynamic>);
+  factory LikesModel.fromJson(String source) =>
+      LikesModel.fromMap(json.decode(source) as Map<String, dynamic>);
 }

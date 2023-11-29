@@ -2,24 +2,36 @@
 
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:hexcolor/hexcolor.dart';
+import 'package:like_button/like_button.dart';
+import 'package:socialapp/model/LikesAndCommentsNotifications.dart';
+import 'package:socialapp/model/LikesModel.dart';
 import 'package:socialapp/styles/AuthStyles.dart';
 import 'package:socialapp/styles/icon_broken.dart';
 import 'package:socialapp/view/AllUsersProfileScreen.dart';
 import 'package:socialapp/view/ChatsDetails.dart';
 import 'package:socialapp/view/DisplayChatImage.dart';
+import 'package:socialapp/view/Login.dart';
+import 'package:socialapp/view/ShowPost.dart';
 
 import 'constants/Functions.dart';
 import 'controller/socialCubit/cubit/social_cubit.dart';
+import 'helper/local/sharedPref.dart';
 import 'model/CommentsModel.dart';
 import 'model/CreatePost.dart';
 import 'model/MessagesModel.dart';
 import 'model/UserModel.dart';
 
 var controller2 = TextEditingController();
+void SignOut(BuildContext context) {
+  SharedPref.removeData(key: "uId").then((value) {
+    Get.offAll(Login());
+  });
+}
 
 inputTextField(
     {hintText,
@@ -104,6 +116,8 @@ SnackbarController snackbar(
 
 Widget chatsListView(UserModel model, BuildContext context) {
   String receiverId = model.uid;
+  final unreadCount =
+      model.unreadMessages[SocialCubit.get(context).model?.uid] ?? 0;
 
   return InkWell(
     onTap: () {
@@ -141,20 +155,42 @@ Widget chatsListView(UserModel model, BuildContext context) {
                     ),
                     Spacer(),
                     Text(
-                      "${formattedDateTimeForChats(model.dateTime).toString()}",
-                      style:
-                          TextStyle(fontSize: 16, color: Colors.grey.shade500),
+                      "${formattedDateTimeForChats(model.dateTime ?? "").toString()}",
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: unreadCount > 0
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                          color: unreadCount > 0
+                              ? primarycolor
+                              : Colors.grey.shade500),
                     ),
                   ],
                 ),
-                Text(
-                  "${model.lastMessage}",
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                Row(
+                  children: [
+                    Text(
+                      model.lastMessage != null
+                          ? truncateText("${model.lastMessage}", 40)
+                          : "",
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      fontSize: 16,
-                      color: Colors.grey.shade500),
+                      style: TextStyle(
+                          overflow: TextOverflow.ellipsis,
+                          fontSize: 16,
+                          color: Colors.grey.shade500),
+                    ),
+                    Spacer(),
+                    if (unreadCount > 0)
+                      CircleAvatar(
+                        radius: 10,
+                        backgroundColor: primarycolor,
+                        child: Text(
+                          "$unreadCount",
+                          style: TextStyle(color: chatcolorr, fontSize: 15),
+                        ),
+                      )
+                  ],
                 ),
               ],
             ),
@@ -212,6 +248,7 @@ Widget userComments(CommentsModel Commentsmodel, context, index) {
     child: Row(
       children: [
         CircleAvatar(
+          backgroundColor: Colors.grey.shade300,
           radius: 25,
           backgroundImage: NetworkImage("${Commentsmodel.image}"),
         ),
@@ -255,45 +292,366 @@ Widget userComments(CommentsModel Commentsmodel, context, index) {
   );
 }
 
+Widget userLikesAndCommentsItem(
+    LikesAndCommentsNotifications Commentsmodel, context, index) {
+  DateTime commentasDateTime = DateTime.parse(Commentsmodel.dateTime);
+  final bool isCurrentUserComment =
+      Commentsmodel.uid != SocialCubit.get(context).model?.uid;
+
+  int commentIndex = index; // Create a local variable to capture the index
+  if (isCurrentUserComment) {
+    return InkWell(
+      onTap: () {
+        Get.to(ShowPost(
+          model: Commentsmodel,
+        ));
+      },
+      onLongPress: () {
+        showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                actionsPadding: EdgeInsets.only(bottom: 10),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text("cancel", style: TextStyle(color: Colors.red)),
+                  ),
+                  TextButton(
+                      onPressed: () {
+                        SocialCubit.get(context).deleteNotification(
+                            notificationId: Commentsmodel.notificatoinId);
+                        Get.back();
+                      },
+                      child:
+                          Text("Ok", style: TextStyle(color: homeprimarycolor)))
+                ],
+                title: Text(
+                  "Warning",
+                  style: TextStyle(
+                      color: primarycolor, fontWeight: FontWeight.bold),
+                ),
+                content: Text(
+                    "are you sure that you want to delete this notification",
+                    style: TextStyle(color: primarycolor)),
+                backgroundColor: Colors.white,
+              );
+            });
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(5.0),
+        child: Row(children: [
+          Stack(
+            alignment: Alignment.bottomRight,
+            children: [
+              CircleAvatar(
+                radius: 35,
+                backgroundImage: NetworkImage("${Commentsmodel.image}"),
+              ),
+              Commentsmodel.type == "like"
+                  ? CircleAvatar(
+                      radius: 10,
+                      backgroundColor: Colors.red,
+                      child: Icon(
+                        Icons.favorite_outlined,
+                        color: Colors.white,
+                        size: 15,
+                      ),
+                    )
+                  : CircleAvatar(
+                      backgroundColor: Colors.white,
+                      radius: 10,
+                      child: Icon(
+                        IconBroken.Chat,
+                        color: Colors.amber,
+                        size: 20,
+                      )),
+            ],
+          ),
+          SizedBox(
+            width: MediaQuery.of(context).size.width / 100,
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      "${Commentsmodel.name}",
+                      style: TextStyle(
+                          fontSize: MediaQuery.of(context).size.height / 50,
+                          fontWeight: FontWeight.bold),
+                    ),
+                    Commentsmodel.type == "like"
+                        ? Text(
+                            " liked your post: ",
+                            style: TextStyle(
+                              fontSize: MediaQuery.of(context).size.height / 70,
+                            ),
+                          )
+                        : Text(
+                            " commented to your post: ",
+                            style: TextStyle(
+                              fontSize: MediaQuery.of(context).size.height / 70,
+                            ),
+                          ),
+                    Spacer(),
+                    Text(formatDateTimeForPosts(commentasDateTime),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontSize: MediaQuery.of(context).size.height / 70))
+                  ],
+                ),
+                SizedBox(
+                  height: 2,
+                ),
+                Row(
+                  children: [
+                    if (Commentsmodel.commetText == "")
+                      Text(
+                        "''",
+                        style: TextStyle(
+                          fontSize: 16,
+                        ),
+                      ),
+                    Commentsmodel.commetText == ""
+                        ? CircleAvatar(
+                            radius: 10,
+                            backgroundColor: Colors.red,
+                            child: Icon(
+                              Icons.favorite_outlined,
+                              color: Colors.white,
+                              size: 12,
+                            ),
+                          )
+                        : SizedBox(
+                            width: MediaQuery.of(context).size.width / 1.3,
+                            child: Text(
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              "'${Commentsmodel.commetText}'",
+                              style: TextStyle(
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                    if (Commentsmodel.commetText == "")
+                      Text(
+                        "''",
+                        style: TextStyle(
+                          fontSize: 16,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ]),
+      ),
+    );
+  } else {
+    return Container();
+  }
+}
+
 Widget userNumberComments(CommentsModel Commentsmodel, context, index) {
   DateTime commentasDateTime = DateTime.parse(Commentsmodel.dateTime);
   final bool isCurrentUserComment =
       Commentsmodel.uid == SocialCubit.get(context).model?.uid;
   int commentIndex = index; // Create a local variable to capture the index
 
-  return Row(
-    children: [
-      Stack(
-        alignment: Alignment.bottomRight,
+  return InkWell(
+    onLongPress: () {
+      if (isCurrentUserComment)
+        showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                actionsPadding: EdgeInsets.only(bottom: 10),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text("cancel", style: TextStyle(color: Colors.red)),
+                  ),
+                  TextButton(
+                      onPressed: () {
+                        SocialCubit.get(context).deleteComment(
+                          postId: SocialCubit.get(context).postId[commentIndex],
+                          CommentsId: Commentsmodel.CommentsId,
+                        );
+                        Get.back();
+                      },
+                      child:
+                          Text("Ok", style: TextStyle(color: homeprimarycolor)))
+                ],
+                title: Text(
+                  "Warning",
+                  style: TextStyle(
+                      color: primarycolor, fontWeight: FontWeight.bold),
+                ),
+                content: Text(
+                    "are you sure that you want to delete your comment",
+                    style: TextStyle(color: primarycolor)),
+                backgroundColor: Colors.white,
+              );
+            });
+    },
+    child: InkWell(
+      onTap: () {
+        Get.to(AllUsersProfileScreen(
+            model: CreatePostModel(
+                uid: Commentsmodel.uid,
+                name: Commentsmodel.name,
+                email: Commentsmodel.email,
+                phone: Commentsmodel.phone,
+                password: Commentsmodel.password,
+                cover: Commentsmodel.cover,
+                bio: Commentsmodel.bio,
+                tokenDevice: Commentsmodel.tokenDevice,
+                image: Commentsmodel.image)));
+      },
+      child: Row(
         children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundImage: NetworkImage("${Commentsmodel.image}"),
+          Stack(
+            alignment: Alignment.bottomRight,
+            children: [
+              CircleAvatar(
+                backgroundColor: Colors.grey.shade300,
+                radius: 30,
+                backgroundImage: NetworkImage("${Commentsmodel.image}"),
+              ),
+              CircleAvatar(
+                  backgroundColor: Colors.white,
+                  radius: 10,
+                  child: Icon(
+                    IconBroken.Chat,
+                    color: Colors.amber,
+                    size: 20,
+                  )),
+            ],
           ),
-          CircleAvatar(
-              backgroundColor: Colors.white,
-              radius: 10,
-              child: Icon(
-                IconBroken.Chat,
-                color: Colors.amber,
-                size: 20,
-              )),
+          SizedBox(
+            width: 15,
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      "${Commentsmodel.name}",
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(
+                      width: 5,
+                    ),
+                    Icon(
+                      Icons.check_circle,
+                      color: homeprimarycolor,
+                      size: 16,
+                    )
+                  ],
+                ),
+                Text(
+                  "${Commentsmodel.text}",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                )
+              ],
+            ),
+          ),
+          SizedBox(
+            width: 15,
+          ),
+          Text(formatDateTimeForPosts(commentasDateTime),
+              style: Theme.of(context).textTheme.bodySmall)
         ],
       ),
-      SizedBox(
-        width: 15,
-      ),
-      Expanded(
-        child: Row(
+    ),
+  );
+}
+
+Widget userNumberLikes(LikesModel likesModel, context, index) {
+  DateTime LikesDateTime = DateTime.parse(likesModel.dateTime);
+  final bool isCurrentUserComment =
+      likesModel.uid == SocialCubit.get(context).model?.uid;
+
+  return InkWell(
+    onTap: () {
+      Get.to(AllUsersProfileScreen(
+          model: CreatePostModel(
+              uid: likesModel.uid,
+              name: likesModel.name,
+              email: likesModel.email,
+              phone: likesModel.phone,
+              password: likesModel.password,
+              cover: likesModel.cover,
+              bio: likesModel.bio,
+              tokenDevice: likesModel.tokenDevice,
+              image: likesModel.image)));
+    },
+    child: Row(
+      children: [
+        Stack(
+          alignment: Alignment.bottomRight,
           children: [
-            Text(
-              "${Commentsmodel.name}",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            CircleAvatar(
+              backgroundColor: Colors.grey.shade300,
+              radius: 30,
+              backgroundImage: NetworkImage("${likesModel.image}"),
             ),
+            CircleAvatar(
+                backgroundColor: Colors.transparent,
+                radius: 10,
+                child: Icon(
+                  Icons.favorite,
+                  color: Colors.red,
+                  size: 23,
+                )),
           ],
         ),
-      ),
-    ],
+        SizedBox(
+          width: 15,
+        ),
+        Expanded(
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Text(
+                    "${likesModel.name}",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(
+                    width: 5,
+                  ),
+                  Icon(
+                    Icons.check_circle,
+                    color: homeprimarycolor,
+                    size: 16,
+                  ),
+                ],
+              ),
+              SizedBox(
+                height: 2,
+              ),
+              Row(
+                children: [
+                  Text(formatDateTimeForPosts(LikesDateTime),
+                      style: Theme.of(context).textTheme.bodySmall),
+                ],
+              )
+            ],
+          ),
+        ),
+      ],
+    ),
   );
 }
 
@@ -304,15 +662,38 @@ Widget buildPostItem(
   SocialState state,
   index,
 ) {
+  Future<bool> onLikeButtonTapped(bool isLiked) async {
+    if (postmodell.isLiked == true) {
+      // User has already liked the post, so remove the like
+      SocialCubit.get(context).removeLikesss(
+        postId: SocialCubit.get(context).postId[index],
+        postModel: postmodell,
+      );
+    } else {
+      // User hasn't liked the post, so add a like
+      SocialCubit.get(context).addLikesss(
+          postId: SocialCubit.get(context).postId[index],
+          postModel: postmodell,
+          timestamp: DateTime.now().toString());
+      print("sssssssssssssssssssssssssss${postmodell.tokenDevice}");
+      SocialCubit.get(context).PostNotification(
+          to: postmodell.tokenDevice,
+          title: SocialCubit.get(context).model!.name,
+          body: "Liked to your post",
+          type: "like");
+    }
+    return !isLiked;
+  }
+
   DateTime postDateTime = DateTime.parse(
       postmodell.datetime as String); // Parse the string to DateTime
 
   return Card(
       elevation: 5,
-      margin: EdgeInsets.symmetric(horizontal: 8),
+      margin: EdgeInsets.symmetric(horizontal: 4),
       clipBehavior: Clip.antiAliasWithSaveLayer,
       child: Padding(
-        padding: const EdgeInsets.all(10.0),
+        padding: const EdgeInsets.all(5.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -325,6 +706,7 @@ Widget buildPostItem(
                     ));
                   },
                   child: CircleAvatar(
+                    backgroundColor: Colors.grey.shade300,
                     radius: 25,
                     backgroundImage: NetworkImage(postmodell.image),
                   ),
@@ -466,12 +848,12 @@ Widget buildPostItem(
                     child: Hero(
                       tag: "${postmodell.postImage}",
                       child: Container(
-                        height: heigh / 2,
+                        height: heigh / 1.8,
                         width: double.infinity,
                         decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(4),
                             image: DecorationImage(
-                                fit: BoxFit.contain,
+                                fit: BoxFit.cover,
                                 image:
                                     NetworkImage("${postmodell.postImage}"))),
                       ),
@@ -504,7 +886,76 @@ Widget buildPostItem(
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 5),
                     child: GestureDetector(
-                      onTap: () {},
+                      onTap: () {
+                        showModalBottomSheet(
+                            context: context,
+                            builder: (context) {
+                              return Container(
+                                  padding: EdgeInsets.all(10),
+                                  color: Colors.white,
+                                  height: double.infinity,
+                                  child: Column(
+                                    children: [
+                                      StreamBuilder(
+                                          stream: SocialCubit.get(context)
+                                              .getLikes(SocialCubit.get(context)
+                                                  .postId[index]),
+                                          builder: (context, snapshot) {
+                                            if (snapshot.hasError) {
+                                              return Text(
+                                                  "Error: ${snapshot.error}");
+                                            } else if (!snapshot.hasData ||
+                                                snapshot.data?.length == 0)
+                                              return Column(
+                                                children: [
+                                                  Text(
+                                                    "Be the first person to like this post",
+                                                    style: TextStyle(
+                                                        color: primarycolor,
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  )
+                                                ],
+                                              );
+                                            else {
+                                              SocialCubit.get(context)
+                                                  .Likesmodel = snapshot.data;
+                                              int originalLikesIndex = index;
+                                              return Expanded(
+                                                child: ListView.separated(
+                                                    physics:
+                                                        BouncingScrollPhysics(),
+                                                    itemBuilder:
+                                                        (context, index) {
+                                                      return userNumberLikes(
+                                                        SocialCubit.get(context)
+                                                            .Likesmodel![index],
+                                                        context,
+                                                        originalLikesIndex,
+                                                      );
+                                                    },
+                                                    separatorBuilder: (context,
+                                                            index) =>
+                                                        Container(
+                                                          margin: EdgeInsets
+                                                              .symmetric(
+                                                                  vertical: 7),
+                                                          height: 1,
+                                                          color: Colors
+                                                              .grey.shade300,
+                                                        ),
+                                                    itemCount:
+                                                        SocialCubit.get(context)
+                                                                .Likesmodel
+                                                                ?.length ??
+                                                            0),
+                                              );
+                                            }
+                                          }),
+                                    ],
+                                  ));
+                            });
+                      },
                       child: Container(
                         child: Row(
                           children: [
@@ -544,15 +995,19 @@ Widget buildPostItem(
                                                   SocialCubit.get(context)
                                                       .postId[index]),
                                           builder: (context, snapshot) {
-                                            if (snapshot.hasError) {
-                                              return Text(
-                                                  "Error: ${snapshot.error}");
-                                            } else if (!snapshot.hasData ||
-                                                snapshot.data!.isEmpty) {
-                                              return Text("No comments yet.");
-                                            } else {
-                                              SocialCubit.get(context)
-                                                  .commentss = snapshot.data;
+                                            SocialCubit.get(context).commentss =
+                                                snapshot.data;
+                                            if (!snapshot.hasData) {
+                                              return Center(
+                                                child:
+                                                    CircularProgressIndicator(),
+                                              );
+                                            }
+
+                                            if (SocialCubit.get(context)
+                                                    .commentss!
+                                                    .length !=
+                                                0) {
                                               int originalCommentIndex = index;
                                               return Expanded(
                                                 child: ListView.separated(
@@ -593,6 +1048,16 @@ Widget buildPostItem(
                                                         SocialCubit.get(context)
                                                             .commentss!
                                                             .length),
+                                              );
+                                            } else {
+                                              return Center(
+                                                child: Text(
+                                                  "No commetns yet",
+                                                  style: TextStyle(
+                                                      color: primarycolor,
+                                                      fontWeight:
+                                                          FontWeight.bold),
+                                                ),
                                               );
                                             }
                                           }),
@@ -650,15 +1115,17 @@ Widget buildPostItem(
                                           .getComments(SocialCubit.get(context)
                                               .postId[index]),
                                       builder: (context, snapshot) {
-                                        if (snapshot.hasError) {
-                                          return Text(
-                                              "Error: ${snapshot.error}");
-                                        } else if (!snapshot.hasData ||
-                                            snapshot.data!.isEmpty) {
-                                          return Text("No comments yet.");
-                                        } else {
-                                          SocialCubit.get(context).commentss =
-                                              snapshot.data;
+                                        SocialCubit.get(context).commentss =
+                                            snapshot.data;
+                                        if (!snapshot.hasData) {
+                                          return Center(
+                                              child:
+                                                  CircularProgressIndicator());
+                                        }
+                                        if (SocialCubit.get(context)
+                                                .commentss!
+                                                .length !=
+                                            0) {
                                           int originalCommentIndex = index;
                                           return Expanded(
                                             child: ListView.separated(
@@ -695,6 +1162,15 @@ Widget buildPostItem(
                                                     SocialCubit.get(context)
                                                         .commentss!
                                                         .length),
+                                          );
+                                        } else {
+                                          return Center(
+                                            child: Text(
+                                              "Be the first person to comment on this post",
+                                              style: TextStyle(
+                                                  color: primarycolor,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
                                           );
                                         }
                                       }),
@@ -754,6 +1230,7 @@ Widget buildPostItem(
                                               //     DateTime.parse(date);
                                               SocialCubit.get(context)
                                                   .addComments(
+                                                      postModel: postmodell,
                                                       postId: SocialCubit.get(
                                                               context)
                                                           .postId[index],
@@ -784,6 +1261,7 @@ Widget buildPostItem(
                     child: Row(
                       children: [
                         CircleAvatar(
+                          backgroundColor: Colors.grey.shade300,
                           radius: 17,
                           backgroundImage: NetworkImage(
                               "${SocialCubit.get(context).model?.image}"),
@@ -799,31 +1277,23 @@ Widget buildPostItem(
                     ),
                   ),
                 ),
-                GestureDetector(
-                  onTap: () {
-                    if (postmodell.isLiked == true) {
-                      // User has already liked the post, so remove the like
-                      SocialCubit.get(context).removeLike(
-                        postId: SocialCubit.get(context).postId[index],
-                        postModel: postmodell,
-                      );
-                    } else {
-                      // User hasn't liked the post, so add a like
-                      SocialCubit.get(context).addLikes(
-                        postId: SocialCubit.get(context).postId[index],
-                        postModel: postmodell,
-                      );
-                    }
-                  },
-                  child: Icon(
-                    postmodell.isLiked == true
-                        ? Icons.favorite_outlined
-                        : Icons.favorite_outline,
-                    color:
-                        postmodell.isLiked == true ? Colors.red : primarycolor,
-                    size: 20,
+                LikeButton(
+                  circleColor:
+                      CircleColor(start: Colors.redAccent, end: Colors.red),
+                  bubblesColor: BubblesColor(
+                    dotPrimaryColor: Colors.redAccent,
+                    dotSecondaryColor: Colors.red,
                   ),
-                ),
+                  size: 25,
+                  onTap: onLikeButtonTapped,
+                  isLiked: postmodell.isLiked,
+                  likeBuilder: (bool isLiked) {
+                    return Icon(
+                      isLiked ? Icons.favorite : Icons.favorite_outline_rounded,
+                      color: isLiked ? Colors.red : Colors.black,
+                    );
+                  },
+                )
               ],
             ),
           ],
@@ -831,220 +1301,787 @@ Widget buildPostItem(
       ));
 }
 
-Align BuildMyMessage(MessageModel model, context) {
-  return Align(
-    alignment: AlignmentDirectional.centerEnd,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Container(
-            padding: EdgeInsets.symmetric(vertical: 5, horizontal: 5),
-            decoration: BoxDecoration(
-                color: primarycolor,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(10),
-                  topRight: Radius.circular(10),
-                  bottomLeft: Radius.circular(10),
-                )),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                model.image != null &&
-                        model.image != "" &&
-                        model.image!.isNotEmpty
-                    ? InkWell(
-                        onTap: () {
-                          Get.to(DisplayChatImage(
-                            image: model.image,
-                          ));
-                        },
-                        child: Hero(
-                          tag: "${model.image}",
-                          child: Container(
-                            height: MediaQuery.of(context).size.height / 2.5,
-                            width: MediaQuery.of(context).size.width / 1.5,
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(4),
-                                image: DecorationImage(
-                                    fit: BoxFit.fill,
-                                    image: NetworkImage("${model.image}"))),
-                          ),
-                        ),
-                      )
-                    : Container(
-                        width: 0,
-                      ),
-                Text(
-                  "${model.text}",
-                  style: TextStyle(fontSize: 18, color: Colors.white),
-                ),
-                Text(
-                  "${formattedDateTime(model.dateTime, 'hh:mm a').toString()}",
-                  style: TextStyle(fontSize: 13, color: Colors.white),
-                ),
-              ],
-            )),
-        Text(
-          model.isRead == true
-              ? 'Read'
-              : model.isSeen == true
-                  ? "Read"
-                  : "Unreed", // Display text "Read" or "Unread"
-          style: TextStyle(
-            fontSize: 14,
-            color: model.isRead ? Colors.grey.shade800 : Colors.deepOrange,
+TextSpan highlightText(
+    {required String text, required String query, required TextStyle style}) {
+  final List<TextSpan> children = [];
+  int textIndex = 0;
+
+  for (int queryIndex = 0; queryIndex < query.length; queryIndex++) {
+    final queryChar = query[queryIndex].toLowerCase();
+
+    while (textIndex < text.length) {
+      final textChar = text[textIndex].toLowerCase();
+      if (textChar == queryChar) {
+        children.add(
+          TextSpan(
+            text: text[textIndex],
+            style: style.copyWith(
+              color: Colors.deepOrange, // Highlight color
+            ),
           ),
-        ),
-      ],
+        );
+        textIndex++;
+        break; // Move to the next query character
+      } else {
+        children.add(
+          TextSpan(
+            text: text[textIndex],
+            style: style.copyWith(
+              color: Colors.white, // Default color
+            ),
+          ),
+        );
+        textIndex++;
+      }
+    }
+  }
+
+  while (textIndex < text.length) {
+    children.add(
+      TextSpan(text: text[textIndex], style: style),
+    );
+    textIndex++;
+  }
+
+  return TextSpan(
+    children: children,
+  );
+}
+
+Widget BuildMyMessage(MessageModel model, context,
+    {username, String query = ''}) {
+  return Padding(
+    padding: const EdgeInsets.all(5.0),
+    child: Align(
+      alignment: AlignmentDirectional.centerEnd,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Container(
+              constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 2 / 3),
+              padding: EdgeInsets.symmetric(vertical: 5, horizontal: 5),
+              decoration: BoxDecoration(
+                  color: primarycolor,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(10),
+                    topRight: Radius.circular(10),
+                    bottomLeft: Radius.circular(10),
+                  )),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (model.replayMessage != null)
+                    IntrinsicHeight(
+                      child: Row(
+                        children: [
+                          Container(
+                            color: chatcolorr,
+                            width: 4,
+                          ),
+                          Expanded(
+                            child: Container(
+                              padding: EdgeInsets.all(5),
+                              decoration: BoxDecoration(
+                                  color: Colors.grey.withOpacity(0.2),
+                                  borderRadius: BorderRadius.only(
+                                      topRight: Radius.circular(12))),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    model.senderId !=
+                                            model.replayMessage?.senderId
+                                        ? "${username}"
+                                        : "You",
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 19,
+                                        color: Colors.white),
+                                  ),
+                                  if (model.replayMessage?.text != "")
+                                    Text(
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      "${model.replayMessage?.text}",
+                                      style: TextStyle(
+                                          color: Colors.white54, fontSize: 17),
+                                    ),
+                                  SizedBox(
+                                    height: 2,
+                                  ),
+                                  model.replayMessage?.image != ""
+                                      ? Container(
+                                          height: MediaQuery.of(context)
+                                                  .size
+                                                  .height /
+                                              3,
+                                          width: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              1.5,
+                                          decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                              image: DecorationImage(
+                                                  fit: BoxFit.fill,
+                                                  image: NetworkImage(
+                                                      "${model.replayMessage?.image}"))),
+                                        )
+                                      : Container(
+                                          width: 0,
+                                        )
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  model.image != null &&
+                          model.image != "" &&
+                          model.image!.isNotEmpty
+                      ? InkWell(
+                          onTap: () {
+                            Get.to(DisplayChatImage(
+                              image: model.image,
+                            ));
+                          },
+                          child: Hero(
+                            tag: "${model.image}",
+                            child: Container(
+                              height: MediaQuery.of(context).size.height / 2.5,
+                              width: MediaQuery.of(context).size.width / 1.5,
+                              decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(4),
+                                  image: DecorationImage(
+                                      fit: BoxFit.fill,
+                                      image: NetworkImage("${model.image}"))),
+                            ),
+                          ),
+                        )
+                      : Container(
+                          width: 0,
+                        ),
+                  RichText(
+                    text: highlightText(
+                      text: model.text,
+                      query: query,
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    ),
+                  ),
+                  Text(
+                    "${formattedDateTime(model.dateTime, 'hh:mm a').toString()}",
+                    style: TextStyle(fontSize: 13, color: Colors.white),
+                  ),
+                ],
+              )),
+          Text(
+            model.isRead == true
+                ? 'Read'
+                : model.isSeen == true
+                    ? "Read"
+                    : "Unreed", // Display text "Read" or "Unread"
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: model.isRead ? HexColor("#1b4740") : Colors.grey,
+            ),
+          ),
+        ],
+      ),
     ),
   );
 }
 
-Align BuildHimMessage(MessageModel model, context) {
-  return Align(
-    alignment: AlignmentDirectional.centerStart,
-    child: Container(
-        padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-        decoration: BoxDecoration(
-            color: Colors.grey[300],
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(10),
-              topRight: Radius.circular(10),
-              bottomRight: Radius.circular(10),
-            )),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            model.image != null && model.image != "" && model.image!.isNotEmpty
-                ? InkWell(
-                    onTap: () {
-                      Get.to(DisplayChatImage(
-                        image: model.image,
-                      ));
-                    },
-                    child: Container(
-                      height: MediaQuery.of(context).size.height / 3,
-                      width: MediaQuery.of(context).size.width / 1.5,
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(4),
-                          image: DecorationImage(
-                              fit: BoxFit.fill,
-                              image: NetworkImage("${model.image}"))),
-                    ),
-                  )
-                : Container(
-                    width: 0,
+Widget BuildHimMessage(MessageModel model, context,
+    {username, String query = ''}) {
+  return Padding(
+    padding: const EdgeInsets.all(5.0),
+    child: Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: Container(
+          constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 2 / 3),
+          padding: EdgeInsets.symmetric(vertical: 5, horizontal: 5),
+          decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(10),
+                topRight: Radius.circular(10),
+                bottomRight: Radius.circular(10),
+              )),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (model.replayMessage != null)
+                IntrinsicHeight(
+                  child: Row(
+                    children: [
+                      Container(
+                        color: chatcolorr,
+                        width: 4,
+                      ),
+                      Expanded(
+                        child: Container(
+                          padding: EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                              color: Colors.grey.withOpacity(0.2),
+                              borderRadius: BorderRadius.only(
+                                  topRight: Radius.circular(12))),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Text(
+                                model.senderId == model.replayMessage?.senderId
+                                    ? "${username}"
+                                    : "You",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 19,
+                                    color: Colors.black),
+                              ),
+                              if (model.replayMessage?.text != "")
+                                Text(
+                                  "${model.replayMessage?.text}",
+                                  style: TextStyle(
+                                      color: Colors.black54, fontSize: 17),
+                                ),
+                              SizedBox(
+                                height: 2,
+                              ),
+                              model.replayMessage?.image != ""
+                                  ? Container(
+                                      height:
+                                          MediaQuery.of(context).size.height /
+                                              3,
+                                      width: MediaQuery.of(context).size.width /
+                                          1.5,
+                                      decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                          image: DecorationImage(
+                                              fit: BoxFit.fill,
+                                              image: NetworkImage(
+                                                  "${model.replayMessage?.image}"))),
+                                    )
+                                  : Container(
+                                      width: 0,
+                                    )
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-            Text(
-              "${model.text}",
-              style: TextStyle(fontSize: 18),
-            ),
-            Text(
-              "${formattedDateTime(model.dateTime, 'hh:mm a').toString()}",
-              style: TextStyle(fontSize: 13),
-            ),
-          ],
-        )),
+                ),
+              model.image != null &&
+                      model.image != "" &&
+                      model.image!.isNotEmpty
+                  ? InkWell(
+                      onTap: () {
+                        Get.to(DisplayChatImage(
+                          image: model.image,
+                        ));
+                      },
+                      child: Hero(
+                        tag: "${model.image}",
+                        child: Container(
+                          height: MediaQuery.of(context).size.height / 2.5,
+                          width: MediaQuery.of(context).size.width / 1.5,
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(4),
+                              image: DecorationImage(
+                                  fit: BoxFit.fill,
+                                  image: NetworkImage("${model.image}"))),
+                        ),
+                      ),
+                    )
+                  : Container(
+                      width: 0,
+                    ),
+              RichText(
+                text: highlightText(
+                  text: model.text,
+                  query: query,
+                  style: TextStyle(fontSize: 18, color: Colors.black),
+                ),
+              ),
+              Text(
+                "${formattedDateTime(model.dateTime, 'hh:mm a').toString()}",
+                style: TextStyle(fontSize: 13, color: Colors.black),
+              ),
+            ],
+          )),
+    ),
   );
 }
 
+Widget buildPostItemmmmm(
+  BuildContext context,
+  double heigh,
+  CreatePostModel postmodell,
+  SocialState state,
+  index,
+) {
+  Future<bool> onLikeButtonTapped(bool isLiked) async {
+    if (postmodell.isLiked == true) {
+      // User has already liked the post, so remove the like
+      SocialCubit.get(context).removeLikesss(
+        postId: SocialCubit.get(context).postId[index],
+        postModel: postmodell,
+      );
+    } else {
+      // User hasn't liked the post, so add a like
+      SocialCubit.get(context).addLikesss(
+          postId: SocialCubit.get(context).postId[index],
+          postModel: postmodell,
+          timestamp: DateTime.now().toString());
+    }
+    return !isLiked;
+  }
 
+  DateTime postDateTime = DateTime.parse(
+      postmodell.datetime as String); // Parse the string to DateTime
 
-    // SocialCubit.get(context)
-    //                       .getComments(SocialCubit.get(context).postId[index]);
-    //                   showModalBottomSheet(
-    //                       context: context,
-    //                       builder: (context) {
-    //                         return Container(
-    //                             padding: EdgeInsets.all(10),
-    //                             color: Colors.white,
-    //                             height: double.infinity,
-    //                             child: Column(
-    //                               children: [
-    //                                 if (state is SocialGetCommentsSuccessState)
-    //                                   Expanded(
-    //                                     child: ListView.separated(
-    //                                         itemBuilder: (context, index) {
-    //                                           return userComments(
-    //                                               SocialCubit.get(context)
-    //                                                   .commentss[index]);
-    //                                         },
-    //                                         separatorBuilder: (context,
-    //                                                 index) =>
-    //                                             Container(
-    //                                               margin: EdgeInsets.symmetric(
-    //                                                   vertical: 7),
-    //                                               height: 1,
-    //                                               color: Colors.grey.shade300,
-    //                                             ),
-    //                                         itemCount: state.commentss!.length),
-    //                                   ),
-    //                                 Container(
-    //                                   padding: EdgeInsets.only(left: 10),
-    //                                   clipBehavior: Clip.antiAliasWithSaveLayer,
-    //                                   decoration: BoxDecoration(
-    //                                       border: Border.all(
-    //                                           color: Colors.grey.shade300,
-    //                                           width: 1),
-    //                                       borderRadius:
-    //                                           BorderRadius.circular(15)),
-    //                                   child: Row(
-    //                                     children: [
-    //                                       Expanded(
-    //                                           child: TextFormField(
-    //                                         controller: controller2,
-    //                                         decoration: InputDecoration(
-    //                                             border: InputBorder.none,
-    //                                             hintText:
-    //                                                 "Write your comment here ..."),
-    //                                         validator: (value) {
-    //                                           if (value!.isEmpty) {
-    //                                             "please write a message";
-    //                                           }
-    //                                           if (value.length == 0) {
-    //                                             "please write a message";
-    //                                           }
-    //                                           return null;
-    //                                         },
-    //                                         autovalidateMode:
-    //                                             AutovalidateMode.always,
-    //                                       )),
-    //                                       SizedBox(
-    //                                         height: 50,
-    //                                         child: MaterialButton(
-    //                                           color: primarycolor,
-    //                                           minWidth: 1,
-    //                                           onPressed: () async {
-    //                                             // var date =
-    //                                             //     messagemodel?.dateTime ??
-    //                                             //         "";
-    //                                             // DateTime timestamp =
-    //                                             //     DateTime.parse(date);
-    //                                             SocialCubit.get(context)
-    //                                                 .addComments(
-    //                                                     postId: SocialCubit.get(
-    //                                                             context)
-    //                                                         .postId[index],
-    //                                                     commentText:
-    //                                                         controller2.text,
-    //                                                     timestamp:
-    //                                                         DateTime.now()
-    //                                                             .toString());
+  return Container(
+      child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      if (postmodell.text != "")
+        Padding(
+          padding: const EdgeInsets.all(6),
+          child: Text(
+            "${postmodell.text}",
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      postmodell.postImage != ""
+          ? InkWell(
+              onTap: () {
+                Get.to(DisplayChatImage(
+                  image: postmodell.postImage,
+                ));
+              },
+              child: Hero(
+                tag: "${postmodell.postImage}",
+                child: Container(
+                  height: heigh / 1.5,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                      image: DecorationImage(
+                          fit: BoxFit.cover,
+                          image: NetworkImage("${postmodell.postImage}"))),
+                ),
+              ),
+            )
+          : postmodell.postImage!.isNotEmpty
+              ? InkWell(
+                  onTap: () {
+                    Get.to(DisplayChatImage(
+                      image: postmodell.postImage,
+                    ));
+                  },
+                  child: Container(
+                    height: heigh / 2,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        image: DecorationImage(
+                            fit: BoxFit.contain,
+                            image: NetworkImage("${postmodell.postImage}"))),
+                  ),
+                )
+              : Container(),
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 5),
+              child: GestureDetector(
+                onTap: () {
+                  showModalBottomSheet(
+                      context: context,
+                      builder: (context) {
+                        return Container(
+                            padding: EdgeInsets.all(10),
+                            color: Colors.white,
+                            height: double.infinity,
+                            child: Column(
+                              children: [
+                                StreamBuilder(
+                                    stream: SocialCubit.get(context).getLikes(
+                                        SocialCubit.get(context).postId[index]),
+                                    builder: (context, snapshot) {
+                                      if (snapshot.hasError) {
+                                        return Text("Error: ${snapshot.error}");
+                                      } else if (!snapshot.hasData ||
+                                          snapshot.data?.length == 0)
+                                        return Column(
+                                          children: [
+                                            Text(
+                                              "Be the first person to like this post",
+                                              style: TextStyle(
+                                                  color: primarycolor,
+                                                  fontWeight: FontWeight.bold),
+                                            )
+                                          ],
+                                        );
+                                      else {
+                                        SocialCubit.get(context).Likesmodel =
+                                            snapshot.data;
+                                        int originalLikesIndex = index;
+                                        return Expanded(
+                                          child: ListView.separated(
+                                              physics: BouncingScrollPhysics(),
+                                              itemBuilder: (context, index) {
+                                                return userNumberLikes(
+                                                  SocialCubit.get(context)
+                                                      .Likesmodel![index],
+                                                  context,
+                                                  originalLikesIndex,
+                                                );
+                                              },
+                                              separatorBuilder: (context,
+                                                      index) =>
+                                                  Container(
+                                                    margin:
+                                                        EdgeInsets.symmetric(
+                                                            vertical: 7),
+                                                    height: 1,
+                                                    color: Colors.grey.shade300,
+                                                  ),
+                                              itemCount:
+                                                  SocialCubit.get(context)
+                                                          .Likesmodel
+                                                          ?.length ??
+                                                      0),
+                                        );
+                                      }
+                                    }),
+                              ],
+                            ));
+                      });
+                },
+                child: Container(
+                  padding: EdgeInsets.only(left: 6),
+                  child: Row(
+                    children: [
+                      Icon(
+                        IconBroken.Heart,
+                        color: Colors.red,
+                        size: 18,
+                      ),
+                      SizedBox(
+                        width: 5,
+                      ),
+                      Text(
+                        "${SocialCubit.get(context).Likes[index]}",
+                        style: Theme.of(context).textTheme.bodySmall,
+                      )
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 5),
+              child: GestureDetector(
+                onTap: () {
+                  showModalBottomSheet(
+                      context: context,
+                      builder: (context) {
+                        return Container(
+                            padding: EdgeInsets.all(10),
+                            color: Colors.white,
+                            height: double.infinity,
+                            child: Column(
+                              children: [
+                                StreamBuilder(
+                                    stream: SocialCubit.get(context)
+                                        .getComments(SocialCubit.get(context)
+                                            .postId[index]),
+                                    builder: (context, snapshot) {
+                                      SocialCubit.get(context).commentss =
+                                          snapshot.data;
+                                      if (!snapshot.hasData) {
+                                        return Center(
+                                          child: CircularProgressIndicator(),
+                                        );
+                                      }
 
-    //                                             controller2.clear();
-    //                                           },
-    //                                           child: Icon(
-    //                                             IconBroken.Send,
-    //                                             color: Colors.white,
-    //                                           ),
-    //                                         ),
-    //                                       )
-    //                                     ],
-    //                                   ),
-    //                                 )
-    //                               ],
-    //                             ));
-    //                       });
-                      
-                      // SocialCubit.get(context).addComments(
-                      //     postId: SocialCubit.get(context).postId[index]);
+                                      if (SocialCubit.get(context)
+                                              .commentss!
+                                              .length !=
+                                          0) {
+                                        int originalCommentIndex = index;
+                                        return Expanded(
+                                          child: ListView.separated(
+                                              physics: BouncingScrollPhysics(),
+                                              itemBuilder: (context, index) {
+                                                if (SocialCubit.get(context)
+                                                            .commentss !=
+                                                        null &&
+                                                    index <
+                                                        SocialCubit.get(context)
+                                                            .commentss!
+                                                            .length) {
+                                                  return userNumberComments(
+                                                    SocialCubit.get(context)
+                                                        .commentss![index],
+                                                    context,
+                                                    originalCommentIndex,
+                                                  );
+                                                }
+                                              },
+                                              separatorBuilder: (context,
+                                                      index) =>
+                                                  Container(
+                                                    margin:
+                                                        EdgeInsets.symmetric(
+                                                            vertical: 7),
+                                                    height: 1,
+                                                    color: Colors.grey.shade300,
+                                                  ),
+                                              itemCount:
+                                                  SocialCubit.get(context)
+                                                      .commentss!
+                                                      .length),
+                                        );
+                                      } else {
+                                        return Center(
+                                          child: Text(
+                                            "No commetns yet",
+                                            style: TextStyle(
+                                                color: primarycolor,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                        );
+                                      }
+                                    }),
+                              ],
+                            ));
+                      });
+                },
+                child: Container(
+                  padding: EdgeInsets.only(right: 6),
+                  child: Row(
+                    children: [
+                      Icon(
+                        IconBroken.Chat,
+                        color: Colors.amber,
+                        size: 16,
+                      ),
+                      SizedBox(
+                        width: 5,
+                      ),
+                      Text(
+                        "${SocialCubit.get(context).Comments[index]}",
+                        style: Theme.of(context).textTheme.bodySmall,
+                      )
+                    ],
+                  ),
+                ),
+              ),
+            )
+          ],
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Container(
+          width: double.infinity,
+          color: Colors.grey[300],
+          height: 1,
+        ),
+      ),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          GestureDetector(
+            onTap: () async {
+              showModalBottomSheet(
+                  context: context,
+                  builder: (context) {
+                    return Container(
+                        padding: EdgeInsets.all(10),
+                        color: Colors.white,
+                        height: double.infinity,
+                        child: Column(
+                          children: [
+                            StreamBuilder(
+                                stream: SocialCubit.get(context).getComments(
+                                    SocialCubit.get(context).postId[index]),
+                                builder: (context, snapshot) {
+                                  if (snapshot.hasError) {
+                                    return Text("Error: ${snapshot.error}");
+                                  } else if (!snapshot.hasData ||
+                                      snapshot.data!.isEmpty) {
+                                    return Text(
+                                        "Be the first person to comment on this post");
+                                  } else {
+                                    SocialCubit.get(context).commentss =
+                                        snapshot.data;
+                                    int originalCommentIndex = index;
+                                    return Expanded(
+                                      child: ListView.separated(
+                                          physics: BouncingScrollPhysics(),
+                                          itemBuilder: (context, index) {
+                                            if (SocialCubit.get(context)
+                                                        .commentss !=
+                                                    null &&
+                                                index <
+                                                    SocialCubit.get(context)
+                                                        .commentss!
+                                                        .length) {
+                                              return userComments(
+                                                SocialCubit.get(context)
+                                                    .commentss![index],
+                                                context,
+                                                originalCommentIndex,
+                                              );
+                                            }
+                                          },
+                                          separatorBuilder: (context, index) =>
+                                              Container(
+                                                margin: EdgeInsets.symmetric(
+                                                    vertical: 7),
+                                                height: 1,
+                                                color: Colors.grey.shade300,
+                                              ),
+                                          itemCount: SocialCubit.get(context)
+                                              .commentss!
+                                              .length),
+                                    );
+                                  }
+                                }),
+                            Container(
+                              padding: EdgeInsets.only(left: 10),
+                              clipBehavior: Clip.antiAliasWithSaveLayer,
+                              decoration: BoxDecoration(
+                                  border: Border.all(
+                                      color: Colors.grey.shade300, width: 1),
+                                  borderRadius: BorderRadius.circular(15)),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                      child: TextFormField(
+                                    autofocus: true,
+                                    // onFieldSubmitted: (value) {
+                                    //   return SocialCubit.get(context)
+                                    //         .addComments(
+                                    //             postId: SocialCubit.get(
+                                    //                     context)
+                                    //                 .postId[index],
+                                    //             commentText:
+                                    //                 controller2.text,
+                                    //             timestamp:
+                                    //                 DateTime.now()
+                                    //                     .toString());
+                                    // },
+                                    controller: controller2,
+                                    decoration: InputDecoration(
+                                        border: InputBorder.none,
+                                        hintText:
+                                            "Write your comment here ..."),
+                                    validator: (value) {
+                                      if (value!.isEmpty) {
+                                        "please write a message";
+                                      }
+                                      if (value.length == 0) {
+                                        "please write a message";
+                                      }
+                                      return null;
+                                    },
+                                    autovalidateMode: AutovalidateMode.always,
+                                  )),
+                                  SizedBox(
+                                    height: 50,
+                                    child: MaterialButton(
+                                      color: primarycolor,
+                                      minWidth: 1,
+                                      onPressed: () async {
+                                        SocialCubit.get(context).addComments(
+                                            postModel: postmodell,
+                                            postId: SocialCubit.get(context)
+                                                .postId[index],
+                                            commentText: controller2.text,
+                                            timestamp:
+                                                DateTime.now().toString());
+                                        SocialCubit.get(context)
+                                            .PostNotification(
+                                                to: postmodell.tokenDevice
+                                                    as String,
+                                                title: SocialCubit.get(context)
+                                                    .model!
+                                                    .name,
+                                                body: "Commented to your post",
+                                                type: "comment");
+
+                                        controller2.clear();
+                                      },
+                                      child: Icon(
+                                        IconBroken.Send,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                ],
+                              ),
+                            )
+                          ],
+                        ));
+                  });
+
+              // SocialCubit.get(context).addComments(
+              //     postId: SocialCubit.get(context).postId[index]);
+            },
+            child: Container(
+              padding: EdgeInsets.only(left: 6),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Colors.grey.shade300,
+                    radius: 17,
+                    backgroundImage: NetworkImage(
+                        "${SocialCubit.get(context).model?.image}"),
+                  ),
+                  SizedBox(
+                    width: 10,
+                  ),
+                  Text(
+                    "write a comment ...",
+                    style: Theme.of(context).textTheme.bodySmall,
+                  )
+                ],
+              ),
+            ),
+          ),
+          LikeButton(
+            circleColor: CircleColor(start: Colors.redAccent, end: Colors.red),
+            bubblesColor: BubblesColor(
+              dotPrimaryColor: Colors.redAccent,
+              dotSecondaryColor: Colors.red,
+            ),
+            size: 25,
+            onTap: onLikeButtonTapped,
+            isLiked: postmodell.isLiked,
+            likeBuilder: (bool isLiked) {
+              return Icon(
+                isLiked ? Icons.favorite : Icons.favorite_outline_rounded,
+                color: isLiked ? Colors.red : Colors.black,
+              );
+            },
+          )
+        ],
+      ),
+    ],
+  ));
+}

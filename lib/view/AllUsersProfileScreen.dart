@@ -58,7 +58,9 @@ class AllUsersProfileScreen extends StatelessWidget {
                             children: [
                               Text("${model?.name}",
                                   style: TextStyle(
-                                      fontSize: 22,
+                                      fontSize:
+                                          MediaQuery.of(context).size.height /
+                                              35,
                                       fontWeight: FontWeight.bold)),
                               SizedBox(
                                 width: 5,

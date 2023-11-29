@@ -1,17 +1,19 @@
-// ignore_for_file: avoid_print, prefer_const_constructors, non_constant_identifier_names, unused_local_variable, unnecessary_null_comparison, prefer_if_null_operators, avoid_function_literals_in_foreach_calls, unnecessary_string_interpolations
+// ignore_for_file: avoid_print, prefer_const_constructors, non_constant_identifier_names, unused_local_variable, unnecessary_null_comparison, prefer_if_null_operators, avoid_function_literals_in_foreach_calls, unnecessary_string_interpolations, curly_braces_in_flow_control_structures, unnecessary_brace_in_string_interps
 
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_advanced_drawer/flutter_advanced_drawer.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get.dart';
 import 'package:hexcolor/hexcolor.dart';
-import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
+import 'package:socialapp/model/LikesModel.dart';
 
 import '../../../Widgets.dart';
 import '../../../constants/variables.dart';
@@ -21,6 +23,7 @@ import '../../../layout/BottomNaviBar.dart';
 import '../../../main.dart';
 import '../../../model/CommentsModel.dart';
 import '../../../model/CreatePost.dart';
+import '../../../model/LikesAndCommentsNotifications.dart';
 import '../../../model/MessagesModel.dart';
 import '../../../model/UserModel.dart';
 import '../../../view/BottomNaviScreens/ChatsScreen.dart';
@@ -34,6 +37,29 @@ part 'social_state.dart';
 class SocialCubit extends Cubit<SocialState> {
   SocialCubit() : super(SocialInitial());
   static SocialCubit get(context) => BlocProvider.of(context);
+
+  MessageModel? replayMessage; // Updated to handle replayMessage
+  final advancedDrawerController = AdvancedDrawerController();
+  void handleMenuButtonPressed() {
+    // NOTICE: Manage Advanced Drawer state through the Controller.
+    // _advancedDrawerController.value = AdvancedDrawerValue.visible();
+    advancedDrawerController.showDrawer();
+  }
+
+  void closeDrawer() {
+    advancedDrawerController.hideDrawer();
+  }
+
+  void changeReplayStatus({required MessageModel message}) {
+    replayMessage = message;
+    emit(SocialRessetReplayStatusSuccessState());
+  }
+
+  void cancelReplay() {
+    replayMessage = null;
+    emit(SocialCancelReplayStatusSuccessState());
+  }
+
   bool scrollToBottom = false;
   void ResetScrollController() {
     scrollToBottom = true;
@@ -52,7 +78,7 @@ class SocialCubit extends Cubit<SocialState> {
   }
 
   UserModel? model;
-  void getUserData() async {
+  dynamic getUserData() async {
     emit(SocialGetUserLoadingState());
     try {
       final userData =
@@ -204,23 +230,177 @@ class SocialCubit extends Cubit<SocialState> {
     });
   }
 
-  //String commentsId = ""; // Store the generated ID
+  void removeLikesss({
+    required String postId,
+    required CreatePostModel postModel,
+  }) {
+    FirebaseFirestore.instance
+        .collection("posts")
+        .doc(postId)
+        .collection("likes")
+        .doc(model?.uid)
+        .delete()
+        .then((value) {
+      // Update the local post model to reflect that the user has unliked it
+      postModel.isLiked = false;
+      emit(SocialRemoveLikeSuccessState());
+    }).catchError((error) {
+      print(error.toString());
+      emit(SocialRemoveLikeErrorState(error: error.toString()));
+    });
+  }
+
+  List<LikesAndCommentsNotifications>? likesAndCommentsNotifications = [];
+  Stream<List<LikesAndCommentsNotifications>> getlikesAndCommentsNotifications(
+      {required String UID}) {
+    return FirebaseFirestore.instance
+        .collection("users")
+        .doc(UID)
+        .collection("notifications")
+        .orderBy("dateTime", descending: true)
+        .snapshots()
+        .map((querySnapshot) {
+      likesAndCommentsNotifications = [];
+      querySnapshot.docs.forEach((document) {
+        likesAndCommentsNotifications
+            ?.add(LikesAndCommentsNotifications.fromMap(document.data()));
+      });
+      return likesAndCommentsNotifications
+          as List<LikesAndCommentsNotifications>;
+    });
+  }
+
+  void addLikesss({
+    required String postId,
+    required String timestamp,
+    required CreatePostModel postModel,
+  }) {
+    String LikesAndcommentsNotificationsId =
+        FirebaseFirestore.instance.collection("notifications").doc().id;
+    LikesModel Likesmodel = LikesModel(
+      postId: postId,
+      uid: model!.uid,
+      name: model!.name,
+      like: true,
+      image: model!.image,
+      cover: model!.cover,
+      bio: model!.bio,
+      email: model!.email,
+      password: model!.password,
+      phone: model!.phone,
+      tokenDevice: model!.tokenDevice,
+      dateTime: timestamp,
+    );
+    LikesAndCommentsNotifications likesAndCommentsNotifications =
+        LikesAndCommentsNotifications(
+            postId: postId,
+            uid: model!.uid,
+            notificatoinId: LikesAndcommentsNotificationsId,
+            recevUserId: postModel.uid,
+            name: model!.name,
+            like: true,
+            image: model!.image,
+            cover: model!.cover,
+            bio: model!.bio,
+            email: model!.email,
+            password: model!.password,
+            phone: model!.phone,
+            dateTime: timestamp,
+            type: "like",
+            commetText: "",
+            text: postModel.text ?? "",
+            postImage: postModel.postImage ?? "");
+    FirebaseFirestore.instance
+        .collection("posts")
+        .doc(postId)
+        .collection("likes")
+        .doc(model?.uid)
+        .set(Likesmodel.toMap())
+        .then((value) {
+      postModel.isLiked = true;
+      FirebaseFirestore.instance
+          .collection("users")
+          .doc(postModel.uid)
+          .collection("notifications")
+          .doc(LikesAndcommentsNotificationsId)
+          .set(likesAndCommentsNotifications.toMap());
+      if (likesAndCommentsNotifications.recevUserId != model?.uid) {
+        FirebaseFirestore.instance
+            .collection("users")
+            .doc(likesAndCommentsNotifications.recevUserId)
+            .update({
+          'unreadNotification.${likesAndCommentsNotifications.recevUserId}':
+              FieldValue.increment(1)
+        });
+      }
+      emit(SocialLikePostSuccesState());
+    }).catchError((error) {
+      print(error.toString());
+
+      emit(SocialLikePostErrorState(error: error.toString()));
+    });
+  }
+
+  List<LikesModel>? Likesmodel = [];
+  Stream<List<LikesModel>> getLikes(String postId) {
+    print("Fetching Likes for postId: $postId"); // Debug log
+    return FirebaseFirestore.instance
+        .collection("posts")
+        .doc(postId)
+        .collection("likes")
+        .orderBy("dateTime", descending: true)
+        .snapshots()
+        .map((querySnapshot) {
+      Likesmodel = [];
+      querySnapshot.docs.forEach((document) {
+        Likesmodel?.add(LikesModel.fromMap(document.data()));
+      });
+      return Likesmodel as List<LikesModel>;
+    });
+  }
 
   void addComments(
       {required String postId,
       required String commentText,
-      required String timestamp}) {
+      required String timestamp,
+      required CreatePostModel postModel}) {
+    String LikesAndcommentsNotificationsId =
+        FirebaseFirestore.instance.collection("notifications").doc().id;
     String commentsId = FirebaseFirestore.instance.collection("posts").doc().id;
-
     CommentsModel comment = CommentsModel(
-      postId: postId,
-      uid: model!.uid,
-      CommentsId: commentsId,
-      image: model!.image,
-      name: model!.name,
-      text: commentText,
-      dateTime: timestamp,
-    );
+        postId: postId,
+        uid: model!.uid,
+        CommentsId: commentsId,
+        image: model!.image,
+        name: model!.name,
+        text: commentText,
+        dateTime: timestamp,
+        bio: model!.bio,
+        cover: model!.cover,
+        email: model!.email,
+        password: model!.password,
+        tokenDevice: model!.tokenDevice,
+        phone: model!.phone);
+
+    LikesAndCommentsNotifications likesAndCommentsNotifications =
+        LikesAndCommentsNotifications(
+            postId: postId,
+            uid: model!.uid,
+            notificatoinId: LikesAndcommentsNotificationsId,
+            recevUserId: postModel.uid,
+            name: model!.name,
+            like: true,
+            image: model!.image,
+            cover: model!.cover,
+            bio: model!.bio,
+            email: model!.email,
+            password: model!.password,
+            phone: model!.phone,
+            dateTime: timestamp,
+            type: "comment",
+            commetText: commentText,
+            text: postModel.text ?? "",
+            postImage: postModel.postImage ?? "");
     FirebaseFirestore.instance
         .collection("posts")
         .doc(postId)
@@ -228,12 +408,73 @@ class SocialCubit extends Cubit<SocialState> {
         .doc(commentsId)
         .set(comment.toMap())
         .then((value) {
-      print("add comment: postId=$postId, CommentsId=${commentsId}");
+      FirebaseFirestore.instance
+          .collection("users")
+          .doc(postModel.uid)
+          .collection("notifications")
+          .doc(LikesAndcommentsNotificationsId)
+          .set(likesAndCommentsNotifications.toMap());
+      if (likesAndCommentsNotifications.recevUserId != model?.uid) {
+        FirebaseFirestore.instance
+            .collection("users")
+            .doc(likesAndCommentsNotifications.recevUserId)
+            .update({
+          'unreadNotification.${likesAndCommentsNotifications.recevUserId}':
+              FieldValue.increment(1)
+        });
+        print("add comment: postId=$postId, CommentsId=${commentsId}");
 
-      emit(SocialCommentPostSuccesState());
+        emit(SocialCommentPostSuccesState());
+      }
     }).catchError((error) {
       print(error.toString());
       emit(SocialCommentPostErrorState(error: error.toString()));
+    });
+  }
+
+  void deleteNotification({required notificationId}) {
+    emit(DeleteNotificationLoadingStete());
+    FirebaseFirestore.instance
+        .collection("users")
+        .doc(model?.uid)
+        .collection("notifications")
+        .doc(notificationId)
+        .delete()
+        .then((value) {
+      if (likesAndCommentsNotifications != null) {
+        likesAndCommentsNotifications!.removeWhere(
+            (notification) => notification.notificatoinId == notificationId);
+        emit(SocialDeleteCommentSuccessState());
+      }
+      emit(DeleteNotificationSuccessStete());
+    }).catchError((error) {
+      print("the error when delete notification is $error");
+      emit(DeleteNotificationErrorStete());
+    });
+  }
+
+  void deleteAllNotifications() {
+    emit(DeleteNotificationLoadingStete());
+
+    // Delete all notifications for the current user
+    FirebaseFirestore.instance
+        .collection("users")
+        .doc(model?.uid)
+        .collection("notifications")
+        .get()
+        .then((querySnapshot) {
+      for (final doc in querySnapshot.docs) {
+        doc.reference.delete();
+      }
+
+      if (likesAndCommentsNotifications != null) {
+        likesAndCommentsNotifications!.clear();
+      }
+
+      emit(DeleteNotificationSuccessStete());
+    }).catchError((error) {
+      print("Error when deleting notifications: $error");
+      emit(DeleteNotificationErrorStete());
     });
   }
 
@@ -307,10 +548,15 @@ class SocialCubit extends Cubit<SocialState> {
     FeedsScreen(),
     ChatsScreen(),
     NewPostScreen(),
-    UsersScreen(),
+    NotificationsScreen(),
     SettingsScreen()
   ];
-  List<String> titles = ["Home", "Chats", "Posts", "Users", "Settings"];
+  List<String> titles = ["Home", "Chats", "Posts", "Notification", "Settings"];
+  bool changeicon = false;
+  void changeIcon() {
+    changeicon = !changeicon;
+    emit(changeIconState());
+  }
 
   void ChangeIndex(index) {
     if (index == 1) {
@@ -318,6 +564,14 @@ class SocialCubit extends Cubit<SocialState> {
     }
     if (index == 2) {
       emit(SocialNewPostState());
+    }
+    if (index == 3) {
+      FirebaseFirestore.instance
+          .collection("users")
+          .doc(model?.uid)
+          .update({'unreadNotification.${model?.uid}': 0});
+      selectedindex = index;
+      emit(SocialChangeButtomNavState());
     } else {
       selectedindex = index;
       emit(SocialChangeButtomNavState());
@@ -331,19 +585,12 @@ class SocialCubit extends Cubit<SocialState> {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       profileimage = File(pickedFile.path);
-      profileimage = cropImage(image: profileimage!) as File?;
       uploadProfileImage(name: name, bio: bio);
       emit(SocialProfilePicedImageSuccesState());
     } else {
       print("No image selected");
       emit(SocialProfilePicedImageErrorState());
     }
-  }
-
-  Future<File?> cropImage({required File image}) async {
-    CroppedFile? croppedimage =
-        await ImageCropper().cropImage(sourcePath: image.path);
-    if (croppedimage == null) return null;
   }
 
   File? Postimage;
@@ -516,6 +763,33 @@ class SocialCubit extends Cubit<SocialState> {
   //   }
   // }
 
+  void changePassword({required String newPassword}) {
+    emit(SocialUpdatePasswordLoadingState());
+    print("Updating password ${newPassword}");
+    UserModel modell = UserModel(
+      name: model!.name,
+      email: model!.email,
+      password: newPassword,
+      phone: model!.phone,
+      image: model!.image,
+      bio: model!.bio,
+      cover: model!.cover,
+      uid: model!.uid,
+      tokenDevice: model!.tokenDevice,
+      isEmailVarified: false, // Correct the property name
+    );
+    FirebaseFirestore.instance
+        .collection("users")
+        .doc(model?.uid) // Use model?.uId as the document ID
+        .update(modell.toMap())
+        .then((value) async {
+      getUserData();
+    }).catchError((error) {
+      print("Error updating password data: ${error.toString()}");
+      emit(SocialUpdatePasswordErrorState());
+    });
+  }
+
   void updateUserData(
       {required String name,
       required String bio,
@@ -615,6 +889,7 @@ class SocialCubit extends Cubit<SocialState> {
         text: text,
         datetime: datetime,
         isLiked: false,
+        tokenDevice: model!.tokenDevice,
         postImage: postimage ?? "");
 
     FirebaseFirestore.instance
@@ -648,19 +923,25 @@ class SocialCubit extends Cubit<SocialState> {
   }
 
   void sendMessage(
-      {required receiverId, required dateTime, required text, String? image}) {
+      {required receiverId,
+      required dateTime,
+      required text,
+      String? image,
+      MessageModel? replaymessage}) {
     String messageId = FirebaseFirestore.instance.collection("chats").doc().id;
-
+// Debugging statement
     MessageModel modell = MessageModel(
-        senderId: model!.uid,
-        receiverId: receiverId,
-        messageId: messageId,
-        dateTime: dateTime,
-        text: text,
-        receiverTkoenDevice: model!.tokenDevice,
-        image: image ?? "",
-        isRead: false,
-        isSeen: false);
+      senderId: model!.uid,
+      receiverId: receiverId,
+      messageId: messageId,
+      dateTime: dateTime,
+      text: text,
+      receiverTkoenDevice: model!.tokenDevice,
+      image: image ?? "",
+      replayMessage: replaymessage, // Pass the replayMessage here
+      isRead: false,
+      isSeen: false,
+    );
 //Send by me
     FirebaseFirestore.instance
         .collection("users")
@@ -671,8 +952,10 @@ class SocialCubit extends Cubit<SocialState> {
         .doc(messageId)
         .set(modell.toMap())
         .then((value) {
-      print("the token is ${model?.tokenDevice}");
-
+      FirebaseFirestore.instance
+          .collection("users")
+          .doc(model?.uid)
+          .update({'unreadMessages.${receiverId}': FieldValue.increment(1)});
       emit(SocialSendMessageSuccessState());
     }).catchError((error) {
       print("Error sending message: $error");
@@ -796,14 +1079,16 @@ class SocialCubit extends Cubit<SocialState> {
           if (!message.isRead) {
             // Update the message's read status in Firestore
             element.reference.update({'isRead': true});
+            // FirebaseFirestore.instance
+            //     .collection("users")
+            //     .doc(receiverId)
+            //     .update({'unreadMessages.${model?.uid}': 0});
           }
         }
 
-        print("Received message: $message");
         messagesmodel.add(message);
       });
 
-      print("messagesmodel is $messagesmodel");
       emit(SocialGetMessageSuccessState());
     });
   }
@@ -847,14 +1132,19 @@ class SocialCubit extends Cubit<SocialState> {
     }
   }
 
-  void PostNotification({
-    required String to,
-    required String title,
-    required String body,
-  }) {
+  void PostNotification(
+      {required String to,
+      required String title,
+      required String body,
+      String type = "message"}) {
     DioHelper().postData(url: SEND, data: {
       "to": to,
-      "notification": {"title": title, "body": body, "sound": "default"},
+      "notification": {
+        "title": title,
+        "body": body,
+        "sound": "default",
+        "priority": "high",
+      },
       "android": {
         "priority": "HIGH",
         "notification": {
@@ -865,10 +1155,8 @@ class SocialCubit extends Cubit<SocialState> {
           "default_light_settings": "true"
         }
       },
-      "data": {"type": "order", "click_action": "FLUTTER_NOTIFICATION_CLICK"}
+      "data": {"type": type, "click_action": "FLUTTER_NOTIFICATION_CLICK"}
     }).then((value) {
-      // LoginData = Loginmodel.fromMap(value.data);
-      //print(LoginData.data?.email);
       emit(SocialPostNotificationSuccessState());
     }).catchError((error) {
       print(error);
@@ -887,38 +1175,32 @@ class SocialCubit extends Cubit<SocialState> {
       provisional: false,
       sound: true,
     );
-
-    // final token = await _firebaseMessaging.getToken();
-    // print("Token is ${token} ");
-    FirebaseMessaging.onMessage.listen((event) {
-      print("On Message");
-      print(event.data.toString());
-      snackbar(
-        type: "Notification",
-        message: "Check your chats",
-        color: HexColor("#021518"),
-      );
-    });
-    FirebaseMessaging.onMessageOpenedApp.listen((event) {
-      selectedindex = 1;
-      ChangeIndex(1);
-      BottomNaviBar.navigateToChatsTab(navigatorKey.currentState!.context);
-
-      // navigatorKey.currentState
-      //     ?.push(MaterialPageRoute(builder: (context) => ChatsScreen()));
-
-      // Get.to(() => ChatsScreen()); // Navigate to ChatsScreen
-      print("the index = $selectedindex");
-      print("On Message Opened App");
-      // print(event.data.toString());
-      // getAllUsers();
-      // snackbar(
-      //   type: "Notification",
-      //   message: "On Message Opened App",
-      //   color: HexColor("#021518"),
-      // );
-    });
+    RemoteMessage? initialmessage =
+        await FirebaseMessaging.instance.getInitialMessage();
+    if (initialmessage != null) {
+      _handeleMessage((initialmessage));
+    }
+    FirebaseMessaging.onMessageOpenedApp.listen(_handeleMessage);
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  }
+}
+
+void _handeleMessage(RemoteMessage event) {
+  String notificationType = event.data['type'];
+
+  if (notificationType == 'like') {
+    // Handle message notification
+    // Add your code here for handling message notifications
+    BottomNaviBar.navigateToNotificationsTab(
+        navigatorKey.currentState!.context);
+    print("On Message Opened App");
+  } else if (notificationType == 'comment') {
+    BottomNaviBar.navigateToNotificationsTab(
+        navigatorKey.currentState!.context);
+    print("On Message Opened App");
+  } else {
+    BottomNaviBar.navigateToChatsTab(navigatorKey.currentState!.context);
+    print("On Message Opened App");
   }
 }
 

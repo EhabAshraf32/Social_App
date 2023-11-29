@@ -9,6 +9,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get_navigation/get_navigation.dart';
 import 'package:socialapp/styles/AuthStyles.dart';
 import 'package:socialapp/view/BottomNaviScreens/ChatsScreen.dart';
+import 'package:socialapp/view/BottomNaviScreens/UsersScreen.dart';
 import 'package:socialapp/view/Login.dart';
 import 'package:socialapp/view/OnBoarding.dart';
 
@@ -20,48 +21,12 @@ import 'controller/socialCubit/cubit/social_cubit.dart';
 import 'helper/local/sharedPref.dart';
 import 'layout/BottomNaviBar.dart';
 
-// Future<void> firebaseMessagingBackgroundHandler(RemoteMessage? message) async {
-//   print("On BackgroungMessage");
-//   print(message?.data.toString());
-//   Fluttertoast.showToast(
-//     msg: "This is Center Short Toast",
-//     toastLength: Toast.LENGTH_SHORT,
-//     gravity: ToastGravity.CENTER,
-//     timeInSecForIosWeb: 1,
-//     backgroundColor: Colors.red,
-//     textColor: Colors.white,
-//     fontSize: 16.0,
-//   );
-// }
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  // await FirebaseApi().initNotification();
   SocialCubit().initNotification();
-
-  // final token = await FirebaseMessaging.instance.getToken();
-  // print("Token is ${token} ");
-  // FirebaseMessaging.onMessage.listen((event) {
-  //   print("On Message");
-  //   print(event.data.toString());
-  //   snackbar(
-  //     type: "Notification",
-  //     message: "One Message",
-  //     color: HexColor("#021518"),
-  //   );
-  // });
-  // FirebaseMessaging.onMessageOpenedApp.listen((event) {
-  //   print("On Message Opened App");
-  //   print(event.data.toString());
-  //   snackbar(
-  //     type: "Notification",
-  //     message: "On Message Opened App",
-  //     color: HexColor("#021518"),
-  //   );
-  // });
-  // FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   await SharedPref.init();
   bool OnBoard = SharedPref.getData(key: "OnBoarding");
   uid = SharedPref.getData(key: "uId");
@@ -94,25 +59,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create: (context) => SocialCubit()
-            ..getPosts()
-            ..getUserData()
-            ..getAllUsers(),
-        ),
-        BlocProvider(
-          create: (context) => LoginCubit(),
-        ),
-        BlocProvider(
-          create: (context) => RegisterCubit(),
-        ),
-      ],
+    return BlocProvider(
+      create: (context) => SocialCubit()
+        ..getPosts()
+        ..getUserData(),
       child: GetMaterialApp(
         debugShowCheckedModeBanner: false,
         navigatorKey: navigatorKey,
         getPages: [
+          GetPage(name: '/notification', page: () => NotificationsScreen()),
           GetPage(
               name: '/chats',
               page: () => ChatsScreen()), // Define ChatsScreen route

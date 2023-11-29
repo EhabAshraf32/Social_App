@@ -22,6 +22,7 @@ class NewPostScreen extends StatelessWidget {
     return BlocConsumer<SocialCubit, SocialState>(
       listener: (context, state) {
         if (state is SocialCreatePostSuccessState) {
+          SocialCubit.get(context).selectedindex = 0;
           Get.back();
           snackbar(
             type: "Success",
@@ -45,6 +46,12 @@ class NewPostScreen extends StatelessWidget {
               }),
           appBar: AppBar(
             title: Text("Create Post"),
+            leading: IconButton(
+                onPressed: () {
+                  SocialCubit.get(context).ChangeIndex(0);
+                  Get.back();
+                },
+                icon: Icon(IconBroken.Arrow___Left_Square)),
             centerTitle: true,
             actions: [
               TextButton(
