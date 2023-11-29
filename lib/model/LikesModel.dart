@@ -14,6 +14,7 @@ class LikesModel {
   final String password;
   final String uid; //for userid
   final String name;
+  final String tokenDevice;
   final String dateTime;
   final bool like;
   LikesModel({
@@ -28,6 +29,7 @@ class LikesModel {
     required this.email,
     required this.phone,
     required this.password,
+    required this.tokenDevice,
   });
 
   Map<String, dynamic> toMap() {
@@ -43,6 +45,7 @@ class LikesModel {
       'email': email,
       'phone': phone,
       'password': password,
+      'tokenDevice': tokenDevice,
     };
   }
 
@@ -59,6 +62,7 @@ class LikesModel {
       email: map['email'] as String,
       phone: map['phone'] as String,
       password: map['password'] as String,
+      tokenDevice: map['tokenDevice'] as String,
     );
   }
 

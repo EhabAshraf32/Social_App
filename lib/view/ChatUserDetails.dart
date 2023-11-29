@@ -40,6 +40,7 @@ class ChatUserDetails extends StatelessWidget {
                     password: model!.password,
                     cover: model!.cover,
                     bio: model!.bio,
+                    tokenDevice: model!.tokenDevice,
                     image: model!.image,
                   )));
                 },

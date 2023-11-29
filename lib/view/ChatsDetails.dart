@@ -481,6 +481,8 @@ class ChatDetailsScreen extends StatelessWidget {
                                             "")
                                           Text(
                                             "${SocialCubit.get(context).replayMessage?.text}",
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
                                                 color: Colors.black54,
                                                 fontSize: 17),
@@ -597,12 +599,13 @@ class ChatDetailsScreen extends StatelessWidget {
                                           text: controller.text,
                                           replaymessage: replayMessageText);
                                       SocialCubit.get(context).PostNotification(
-                                        to: model.tokenDevice,
-                                        title: SocialCubit.get(context)
-                                            .model!
-                                            .name,
-                                        body: "Sent you a message",
-                                      );
+                                          to: model.tokenDevice,
+                                          title: SocialCubit.get(context)
+                                              .model!
+                                              .name,
+                                          body: "Sent you a message",
+                                          type: "message");
+                                      replayMessageText = null;
                                       controller.clear();
                                     }
                                   },

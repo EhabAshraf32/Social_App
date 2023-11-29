@@ -31,17 +31,6 @@ class LoadingPost extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(
-      //   title: const Text(
-      //     'Shimmer',
-      //     style: TextStyle(
-      //       color: Colors.black,
-      //       fontSize: 24,
-      //       fontWeight: FontWeight.bold,
-      //     ),
-      //   ),
-      //   backgroundColor: Colors.white,
-      // ),
       body: ListView.builder(
         itemCount: 5,
         itemBuilder: (context, index) {

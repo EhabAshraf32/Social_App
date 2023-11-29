@@ -13,6 +13,7 @@ class CreatePostModel {
   String? text;
   String? postImage;
   String? datetime;
+  String tokenDevice;
   bool? isLiked; // New property to track whether the post is liked
 
   CreatePostModel(
@@ -27,6 +28,7 @@ class CreatePostModel {
       this.text,
       this.postImage,
       this.datetime,
+      required this.tokenDevice,
       this.isLiked});
 
   Map<String, dynamic> toMap() {
@@ -42,6 +44,7 @@ class CreatePostModel {
       'text': text,
       'postImage': postImage,
       'datetime': datetime,
+      'tokenDevice': tokenDevice,
       'isLiked': isLiked,
     };
   }
@@ -59,6 +62,7 @@ class CreatePostModel {
       text: map['text'] as String,
       postImage: map['postImage'] as String,
       datetime: map['datetime'] as String,
+      tokenDevice: map['tokenDevice'] as String,
       isLiked: map['isLiked'] as bool,
     );
   }

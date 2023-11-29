@@ -7,6 +7,8 @@ class LikesAndCommentsNotifications {
   // final String commentId;
   final String postId;
   final String recevUserId;
+  String? notificatoinId;
+
   final String cover;
   final String bio;
   final String image;
@@ -17,9 +19,14 @@ class LikesAndCommentsNotifications {
   final String name;
   final String dateTime;
   final bool like;
+  final String type;
+  String? commetText;
+  String text;
+  String postImage;
   LikesAndCommentsNotifications(
       {required this.postId,
       required this.uid,
+      this.notificatoinId,
       required this.name,
       required this.dateTime,
       required this.like,
@@ -29,12 +36,17 @@ class LikesAndCommentsNotifications {
       required this.email,
       required this.phone,
       required this.password,
+      required this.type,
+      this.commetText,
+      required this.text,
+      required this.postImage,
       required this.recevUserId});
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'postId': postId,
       'uid': uid,
+      'notificatoinId': notificatoinId,
       'name': name,
       'dateTime': dateTime,
       'like': like,
@@ -44,6 +56,10 @@ class LikesAndCommentsNotifications {
       'email': email,
       'phone': phone,
       'password': password,
+      'type': type,
+      'commetText': commetText,
+      'text': text,
+      'postImage': postImage,
       'recevUserId': recevUserId,
     };
   }
@@ -52,6 +68,7 @@ class LikesAndCommentsNotifications {
     return LikesAndCommentsNotifications(
       postId: map['postId'] as String,
       uid: map['uid'] as String,
+      notificatoinId: map['notificatoinId'] as String,
       name: map['name'] as String,
       dateTime: map['dateTime'] as String,
       like: map['like'] as bool,
@@ -61,6 +78,10 @@ class LikesAndCommentsNotifications {
       email: map['email'] as String,
       phone: map['phone'] as String,
       password: map['password'] as String,
+      type: map['type'] as String,
+      commetText: map['commetText'] as String,
+      postImage: map['postImage'] as String,
+      text: map['text'] as String,
       recevUserId: map['recevUserId'] as String,
     );
   }

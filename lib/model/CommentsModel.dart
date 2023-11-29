@@ -17,6 +17,7 @@ class CommentsModel {
   final String phone;
   final String password;
   final String dateTime;
+  final String tokenDevice;
   CommentsModel({
     required this.postId,
     required this.uid,
@@ -29,6 +30,7 @@ class CommentsModel {
     required this.bio,
     required this.email,
     required this.phone,
+    required this.tokenDevice,
     required this.password,
   });
 
@@ -46,6 +48,7 @@ class CommentsModel {
       'email': email,
       'phone': phone,
       'password': password,
+      'tokenDevice': tokenDevice,
     };
   }
 
@@ -63,6 +66,7 @@ class CommentsModel {
       email: map['email'] as String,
       phone: map['phone'] as String,
       password: map['password'] as String,
+      tokenDevice: map['tokenDevice'] as String,
     );
   }
 

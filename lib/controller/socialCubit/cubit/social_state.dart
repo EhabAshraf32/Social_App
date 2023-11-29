@@ -204,3 +204,20 @@ class SocialPostNotificationErrorState extends SocialState {}
 class SocialResetScrollController extends SocialState {}
 
 class SocialNotificationLoadingState extends SocialState {}
+
+class DeleteNotificationLoadingStete extends SocialState {}
+
+class DeleteNotificationSuccessStete extends SocialState {}
+
+class DeleteNotificationErrorStete extends SocialState {}
+
+//password
+class SocialUpdatePasswordLoadingState extends SocialState {}
+
+class SocialUpdatePasswordSuccessState extends SocialState {}
+
+class SocialUpdatePasswordErrorState extends SocialState {}
+
+class changeIconState extends SocialState {}
+
+class HandleDrawer extends SocialState {}

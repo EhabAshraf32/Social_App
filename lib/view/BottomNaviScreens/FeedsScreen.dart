@@ -30,13 +30,19 @@ class FeedsScreen extends StatelessWidget {
       },
       builder: (context, state) {
         if (SocialCubit.get(context).model != null &&
-            SocialCubit.get(context).posts.isNotEmpty &&
-            state is! SocialGetUserLoadingState) {
+                SocialCubit.get(context).posts.isNotEmpty &&
+                SocialCubit.get(context).posts.length != 0
+            //  &&
+            // state is! SocialGetUserLoadingState
+
+            ) {
           return ConditionalBuilder(
               condition: SocialCubit.get(context).model != null &&
                   SocialCubit.get(context).posts.length != 0 &&
-                  SocialCubit.get(context).posts.isNotEmpty &&
-                  state is! SocialGetUserLoadingState,
+                  SocialCubit.get(context).posts.isNotEmpty
+              // &&
+              // state is! SocialGetUserLoadingState
+              ,
               builder: (context) => RefreshIndicator(
                     backgroundColor: primarycolor,
                     displacement: 50.0,

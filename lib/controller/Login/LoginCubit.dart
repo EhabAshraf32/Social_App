@@ -12,8 +12,7 @@ class LoginCubit extends Cubit<LoginState> {
   static LoginCubit get(context) => BlocProvider.of(context);
 
   //late Loginmodel LoginData;
-  TextEditingController emailController = TextEditingController();
-  TextEditingController passwordController = TextEditingController();
+
   GlobalKey<FormState> formstate = GlobalKey();
   bool changeicon = false;
   void changeIcon() {
@@ -26,11 +25,10 @@ class LoginCubit extends Cubit<LoginState> {
     emit(FeatchUserDataState());
   }
 
-  void UserLogin() {
+  void UserLogin({required String email, required String password}) {
     emit(Loadingstate());
     FirebaseAuth.instance
-        .signInWithEmailAndPassword(
-            email: emailController.text, password: passwordController.text)
+        .signInWithEmailAndPassword(email: email, password: password)
         .then((value) {
       print(value.user?.email);
       print(value.user?.uid);

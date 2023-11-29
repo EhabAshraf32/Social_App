@@ -9,6 +9,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get_navigation/get_navigation.dart';
 import 'package:socialapp/styles/AuthStyles.dart';
 import 'package:socialapp/view/BottomNaviScreens/ChatsScreen.dart';
+import 'package:socialapp/view/BottomNaviScreens/UsersScreen.dart';
 import 'package:socialapp/view/Login.dart';
 import 'package:socialapp/view/OnBoarding.dart';
 
@@ -58,23 +59,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-            create: (context) => SocialCubit()
-              ..getPosts()
-              ..getUserData()),
-        BlocProvider(
-          create: (context) => LoginCubit(),
-        ),
-        BlocProvider(
-          create: (context) => RegisterCubit(),
-        ),
-      ],
+    return BlocProvider(
+      create: (context) => SocialCubit()
+        ..getPosts()
+        ..getUserData(),
       child: GetMaterialApp(
         debugShowCheckedModeBanner: false,
         navigatorKey: navigatorKey,
         getPages: [
+          GetPage(name: '/notification', page: () => NotificationsScreen()),
           GetPage(
               name: '/chats',
               page: () => ChatsScreen()), // Define ChatsScreen route
